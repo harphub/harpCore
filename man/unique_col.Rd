@@ -36,3 +36,14 @@ are wrappers around \code{unique_col} that extract the unique stations,
 valid date-time and forecast start date-time using the standard harp
 column names "SID", "validdate" and "fcdate" respectively.
 }
+\examples{
+unique_col(det_point_df, fcdate)
+unique_col(det_point_df, SID)
+
+# Works with quoted column names too
+unique_col(det_point_df, "SID")
+
+# Use {{<var>}} for variables as columns
+my_col <- "SID"
+unique_col(det_point_df, {{my_col}})
+}

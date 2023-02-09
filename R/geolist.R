@@ -25,46 +25,78 @@ as_geolist <- function(...) {
     x <- x[[1]]
   }
 
+  if (length(x) < 1) return(NULL)
+
   if (inherits(x, "geolist")) {
     return(x)
   }
 
-  if (!all(sapply(x, meteogrid::is.geofield))) {
+  # NULLS are allowed in geolists?
+  if (!all(sapply(x[!sapply(x, is.null)], meteogrid::is.geofield))) {
     stop("All ... must be geofields.")
   }
 
-  if (length(x) > 1) {
-    same_domains <- sapply(
-      seq.int(2, length(x)),
-      function(d) check_domains(x[[(d - 1)]], x[[d]])
-    )
-    if (!all(same_domains)) {
-      stop("All geofields must be on the same domain.")
-    }
+  domain_check <- check_geolist_domains(x)
+  if (!domain_check) {
+    stop("All geofields must be on the same domain.")
   }
 
   structure(
     x,
     class = c("geolist", class(x)),
-    domain = meteogrid::as.geodomain(x[[1]])
+    domain = get_geodomain(x)
   )
 }
 
+get_geodomain <- function(x) {
+  x <- x[!sapply(x, is.null)]
+  if (length(x) < 1) {
+    return(NULL)
+  }
+  meteogrid::as.geodomain(x[[1]])
+}
 check_domains <- function(x, y) {
-  meteogrid::compare.geodomain(
-    meteogrid::as.geodomain(x),
-    meteogrid::as.geodomain(y)
-  )
+  if (
+    (meteogrid::is.geodomain(x) || meteogrid::is.geofield(x)) &&
+    (meteogrid::is.geodomain(y) || meteogrid::is.geofield(y))
+  ) {
+    return(
+      meteogrid::compare.geodomain(
+        meteogrid::as.geodomain(x),
+        meteogrid::as.geodomain(y)
+      )
+    )
+  }
+  if ((length(x) == 0 && is.null(x)) || (length(y) == 0 && is.null(y))) {
+    return(NULL)
+  }
+  FALSE
+}
+
+check_geolist_domains <- function(x) {
+  x <- x[!sapply(x, is.null)]
+  if (length(x) > 1) {
+    same_domains <- sapply(
+      seq.int(2, length(x)),
+      function(d) check_domains(x[[(d - 1)]], x[[d]])
+    )
+    return(all(same_domains))
+  }
+  TRUE
 }
 
 geofield_info <- function(x) {
-  dom  <- meteogrid::DomainExtent(x)
-  info <- attr(x, "info")
-  cat(
-    paste0("<geofield [", dom[["nx"]], " x ", dom[["ny"]], "]"),
-    paste0(info[["name"]], ">"),
-    "\n"
-  )
+  if (is.null(x)) {
+    cat("<NULL>\n")
+  } else {
+    dom  <- meteogrid::DomainExtent(x)
+    info <- attr(x, "info")
+    cat(
+      paste0("<geofield [", dom[["nx"]], " x ", dom[["ny"]], "]"),
+      paste0(info[["name"]], ">"),
+      "\n"
+    )
+  }
 }
 
 #' @rdname as_geolist
@@ -76,19 +108,19 @@ is_geolist <- function(x) {
 
 #' @export
 print.geolist <- function(x, ...) {
-  cat("geolist with", length(x), "geofields:\n\n")
+  cat("geolist with", length(x[!sapply(x, is.null)]), "valid geofields:\n\n")
   lapply(x, geofield_info)
   cat("\n")
-  print(meteogrid::as.geodomain(x[[1]]))
+  print(meteogrid::as.geodomain(x[!sapply(x, is.null)][[1]]))
 }
 
 #' @export
-`[.geolist` <- function(x, i, ...) {
+`[.geolist` <- function(x, i) {
   as_geolist(NextMethod())
 }
 
 #' @export
-c.geolist <- function(x, ...) {
+c.geolist <- function(...) {
   as_geolist(NextMethod())
 }
 

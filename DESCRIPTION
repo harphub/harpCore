@@ -18,9 +18,10 @@ Imports:
     dplyr,
     meteogrid,
     rlang,
-    tibble
+    tibble,
+    tidyr
 Remotes:
     harphub/meteogrid
 Depends: 
-    R (>= 2.10)
+    R (>= 3.6)
 LazyData: true

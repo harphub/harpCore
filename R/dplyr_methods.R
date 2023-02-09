@@ -77,6 +77,13 @@ filter.harp_list <- function(.data, ...) {
   as_harp_list(lapply(.data, dplyr::filter, ...))
 }
 
+# dplyr::filter needs to be exported to prevent
+# Warning: declared S3 method 'filter.tbl_time' not found
+# because of stats::filter
+#' @export
+#'
+dplyr::filter
+
 #' Arrange rows by column values
 #'
 #' This is the \code{harp_list} method for \code{\link[dplyr]{arrange}()}.
@@ -172,7 +179,21 @@ bind.harp_list <- function(.harp_list, .id = "fcst_model", ...) {
     ~gsub("[[:graph:]]+_(?=mbr[[:digit:]]+|det$)", "", .x, perl = TRUE),
     .cols = dplyr::matches("mbr[[:digit:]]{3}|det$")
   )
-  dplyr::bind_rows(
+  # geolist columns need to be made into simple list columns first,
+  # and then reconstructed into geolists.
+  add_suffix <- function(x) {
+    if (length(x) == 0) return(as.character())
+    paste0(x, "_geolist")
+  }
+  .harp_list <- dplyr::rename_with(
+    .harp_list, add_suffix, dplyr::where(is_geolist)
+  )
+
+  .harp_list <- dplyr::mutate(
+    .harp_list, dplyr::across(dplyr::where(is_geolist), unclass)
+  )
+
+  .harp_list <- dplyr::bind_rows(
     mapply(
       function(x, y) {x[[.id]] <- y; x},
       .harp_list,
@@ -180,5 +201,157 @@ bind.harp_list <- function(.harp_list, .id = "fcst_model", ...) {
       SIMPLIFY = FALSE
     )
   )
+
+  check_geolist_cols(.harp_list)
+
+  .harp_list <- dplyr::mutate(
+    .harp_list, dplyr::across(dplyr::matches("_geolist$"), as_geolist)
+  )
+
+  .harp_list <- dplyr::rename_with(
+    .harp_list, function(x) gsub("_geolist$", "", x)
+  )
+
+  dplyr::relocate(
+    .harp_list, dplyr::all_of(.id), .before = dplyr::everything()
+  )
+}
+
+check_geolist_cols <- function(x) {
+  geolist_cols <- grep("_geolist$", colnames(x))
+  if (length(x) < 1) {
+    return()
+  }
+  bad_cols <- 0
+  bad_col_names <- as.character()
+  for (i in geolist_cols) {
+    if (!check_geolist_domains(x[[i]])) {
+      bad_cols <- bad_cols + 1
+      bad_col_names[bad_cols] <- sub("_geolist$", "", colnames(x)[i])
+    }
+  }
+  if (bad_cols > 0) {
+    stop(
+      "Cannot bind data frames.\n Domain mismatch in columns: ",
+      paste0("`", paste(bad_col_names, collapse = "`, `"), "`")
+    )
+  }
+}
+
+#' Select ensemble members
+#'
+#' \code{select_members} is used to select specific ensemble members from a
+#' data frame along with all other columns. The method can also be applied to
+#' a \code{harp_list} of ensemble data frames.
+#'
+#' @param .data A data frame with ensemble members or a \code{harp_list}
+#' @param members The members to select. Can be a numeric vector, or a named
+#'   list to select members from specific forecast models in a \code{harp_list}
+#'   object.
+#' @param include_lagged Logical. Whether to include lagged ensemble members
+#'   in the selection.
+#'
+#' @return A data frame with the selected members or a \code{harp_list} of
+#'   data frames with the selected ensemble members.
+#' @export
+#'
+#' @examples
+#' select_members(ens_point_df, 0)
+#' select_members(ens_grid_df, 1)
+#'
+#' # More than one member can be selected
+#' select_members(ens_point_df, c(0, 1))
+#'
+#' # Select member 0 from a harp_list
+#' select_members(ens_point_list, 0)
+#'
+#' # Different members can be selected from each data frame
+#' select_members(ens_point_list, list(a = 0, b = 1))
+select_members <- function(.data, members, include_lagged = TRUE) {
+  UseMethod("select_members")
+}
+
+#' @export
+select_members.harp_ens_point_df <- function(.data, members, include_lagged = TRUE) {
+  member_select(.data, members, include_lagged)
+}
+
+#' @export
+select_members.harp_ens_grid_df <- function(.data, members, include_lagged = TRUE) {
+  member_select(.data, members, include_lagged)
+}
+
+#' @export
+select_members.harp_list <- function(.data, members, include_lagged = TRUE) {
+
+  if (is.list(members)) {
+
+    if (is.null(names(members))) {
+
+      if (length(members) == 1 && length(.data) > 1) {
+        message(
+          "Members only supplied for one forecast model.",
+          "Recycling members for all forecast models."
+        )
+        members <- rep(members, length(.data))
+      } else if (length(members) != length(.data)) {
+        stop(
+          paste(
+            "Members supplied for", length(members), "forecast models",
+            "when there are ", length(.data), "forecast models."
+          ),
+          call. = FALSE
+        )
+      } else {
+        warning(
+          "No forecast model names supplied for members. ",
+          "Assuming they are in the correct order.",
+          immediate. = TRUE, call. = FALSE
+        )
+        names(members) <- names(.data)
+      }
+
+    } else {
+      bad_names <- setdiff(names(members), names(.data))
+      if (length(bad_names) > 0) {
+        stop(paste(bad_names, collapse = ", "), " not found in .data", call. = FALSE)
+      }
+    }
+
+  } else {
+
+    if (length(.data) > 1) {
+      message(
+        "Members only supplied for one forecast model. ",
+        "Recycling members for all forecast models."
+      )
+    }
+    members <- lapply(seq_along(.data), function(x) members)
+    names(members) <- names(.data)
+  }
+
+  .data[names(members)] <- mapply(
+    select_members, .data[names(members)], members,
+    MoreArgs = list(include_lagged = include_lagged),
+    SIMPLIFY = FALSE
+  )
+  .data
+
+}
+
+member_select <- function(df, members, lag_inc) {
+  suffix    <- ifelse(lag_inc, "", "$")
+  meta_cols <- grep("_mbr[[:digit:]]", colnames(df), invert = TRUE)
+  data_cols <- lapply(
+    members,
+    function(x) {
+      grep(
+        paste0("_mbr", formatC(x, width = 3, flag = "0"), suffix),
+        colnames(df)
+      )
+    }
+  )
+  data_cols <- unlist(data_cols[sapply(data_cols, length) != 0])
+  dplyr::select(df, dplyr::all_of(c(meta_cols, data_cols)))
 }
 
