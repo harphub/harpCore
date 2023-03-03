@@ -1,2 +1,7 @@
+*.[oa]
+*.so
+*.swp
+.*.swp
+*~
 .Rproj.user
 .Rhistory

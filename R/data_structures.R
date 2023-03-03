@@ -42,15 +42,6 @@ as_harp_df <- function(x) {
 }
 
 #' @export
-as_harp_df.tbl_df <- function(x) {
-  NextMethod()
-}
-#' @export
-as_harp_df.tbl <- function(x) {
-  NextMethod()
-}
-
-#' @export
 as_harp_df.data.frame <- function(x) {
   has_validdate <- is.element("validdate", colnames(x))
   if (!has_validdate) {

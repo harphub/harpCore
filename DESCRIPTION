@@ -17,6 +17,7 @@ Imports:
     cli,
     dplyr,
     meteogrid,
+    Rcpp,
     rlang,
     tibble,
     tidyr
@@ -25,3 +26,5 @@ Remotes:
 Depends: 
     R (>= 3.6)
 LazyData: true
+LinkingTo: 
+    Rcpp

@@ -114,8 +114,8 @@ pull.harp_list <- function(.data, ...) {
 
 #' Bind data frames in a list
 #'
-#' `bind` is a wrapper around \code{\link[dplyr]{bind_rows}} with a dedicated
-#' method for harp_list objects. In all other cases
+#' \code{bind_dfr} is a wrapper around \code{\link[dplyr]{bind_rows}} with a
+#' dedicated method for harp_list objects. In all other cases
 #' \code{\link[dplyr]{bind_rows}} is called.
 #'
 #' For harp_list objects, the name of each element in the list is added to each
@@ -136,7 +136,7 @@ pull.harp_list <- function(.data, ...) {
 #' @export
 #'
 #' @examples
-#' bind(
+#' bind_dfr(
 #'   as_harp_list(
 #'     a = as_harp_df(data.frame(
 #'       validdate = seq_dates(2021010100, 2021010123),
@@ -148,7 +148,7 @@ pull.harp_list <- function(.data, ...) {
 #'     ))
 #'   )
 #' )
-#' bind(
+#' bind_dfr(
 #'   as_harp_list(
 #'     a = as_harp_df(data.frame(
 #'       validdate = seq_dates(2021010100, 2021010123),
@@ -163,17 +163,17 @@ pull.harp_list <- function(.data, ...) {
 #'   )
 #' )
 
-bind <- function(..., .id = NULL) {
-  UseMethod("bind")
+bind_dfr <- function(..., .id = NULL) {
+  UseMethod("bind_dfr")
 }
 
 #' @export
-bind.default <- function(..., .id = NULL) {
+bind_dfr.default <- function(..., .id = NULL) {
   dplyr::bind_rows(..., .id = .id)
 }
 
 #' @export
-bind.harp_list <- function(.harp_list, .id = "fcst_model", ...) {
+bind_dfr.harp_list <- function(.harp_list, .id = "fcst_model", ...) {
   .harp_list <- dplyr::rename_with(
     .harp_list,
     ~gsub("[[:graph:]]+_(?=mbr[[:digit:]]+|det$)", "", .x, perl = TRUE),
@@ -236,122 +236,5 @@ check_geolist_cols <- function(x) {
       paste0("`", paste(bad_col_names, collapse = "`, `"), "`")
     )
   }
-}
-
-#' Select ensemble members
-#'
-#' \code{select_members} is used to select specific ensemble members from a
-#' data frame along with all other columns. The method can also be applied to
-#' a \code{harp_list} of ensemble data frames.
-#'
-#' @param .data A data frame with ensemble members or a \code{harp_list}
-#' @param members The members to select. Can be a numeric vector, or a named
-#'   list to select members from specific forecast models in a \code{harp_list}
-#'   object.
-#' @param include_lagged Logical. Whether to include lagged ensemble members
-#'   in the selection.
-#'
-#' @return A data frame with the selected members or a \code{harp_list} of
-#'   data frames with the selected ensemble members.
-#' @export
-#'
-#' @examples
-#' select_members(ens_point_df, 0)
-#' select_members(ens_grid_df, 1)
-#'
-#' # More than one member can be selected
-#' select_members(ens_point_df, c(0, 1))
-#'
-#' # Select member 0 from a harp_list
-#' select_members(ens_point_list, 0)
-#'
-#' # Different members can be selected from each data frame
-#' select_members(ens_point_list, list(a = 0, b = 1))
-select_members <- function(.data, members, include_lagged = TRUE) {
-  UseMethod("select_members")
-}
-
-#' @export
-select_members.harp_ens_point_df <- function(.data, members, include_lagged = TRUE) {
-  member_select(.data, members, include_lagged)
-}
-
-#' @export
-select_members.harp_ens_grid_df <- function(.data, members, include_lagged = TRUE) {
-  member_select(.data, members, include_lagged)
-}
-
-#' @export
-select_members.harp_list <- function(.data, members, include_lagged = TRUE) {
-
-  if (is.list(members)) {
-
-    if (is.null(names(members))) {
-
-      if (length(members) == 1 && length(.data) > 1) {
-        message(
-          "Members only supplied for one forecast model.",
-          "Recycling members for all forecast models."
-        )
-        members <- rep(members, length(.data))
-      } else if (length(members) != length(.data)) {
-        stop(
-          paste(
-            "Members supplied for", length(members), "forecast models",
-            "when there are ", length(.data), "forecast models."
-          ),
-          call. = FALSE
-        )
-      } else {
-        warning(
-          "No forecast model names supplied for members. ",
-          "Assuming they are in the correct order.",
-          immediate. = TRUE, call. = FALSE
-        )
-        names(members) <- names(.data)
-      }
-
-    } else {
-      bad_names <- setdiff(names(members), names(.data))
-      if (length(bad_names) > 0) {
-        stop(paste(bad_names, collapse = ", "), " not found in .data", call. = FALSE)
-      }
-    }
-
-  } else {
-
-    if (length(.data) > 1) {
-      message(
-        "Members only supplied for one forecast model. ",
-        "Recycling members for all forecast models."
-      )
-    }
-    members <- lapply(seq_along(.data), function(x) members)
-    names(members) <- names(.data)
-  }
-
-  .data[names(members)] <- mapply(
-    select_members, .data[names(members)], members,
-    MoreArgs = list(include_lagged = include_lagged),
-    SIMPLIFY = FALSE
-  )
-  .data
-
-}
-
-member_select <- function(df, members, lag_inc) {
-  suffix    <- ifelse(lag_inc, "", "$")
-  meta_cols <- grep("_mbr[[:digit:]]", colnames(df), invert = TRUE)
-  data_cols <- lapply(
-    members,
-    function(x) {
-      grep(
-        paste0("_mbr", formatC(x, width = 3, flag = "0"), suffix),
-        colnames(df)
-      )
-    }
-  )
-  data_cols <- unlist(data_cols[sapply(data_cols, length) != 0])
-  dplyr::select(df, dplyr::all_of(c(meta_cols, data_cols)))
 }
 

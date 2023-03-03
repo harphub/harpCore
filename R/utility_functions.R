@@ -53,3 +53,76 @@ seq_pwr2 <- function(from, len, powers = TRUE) {
   }
   2 ^ seq(log2(from), length.out = len)
 }
+
+
+#' Piecewise pattern matching and replacement
+#'
+#' \code{psub} calls \code{\link[base]{gsub}} for each pattern / replacement
+#' pair. Where a pattern is not found, a warning is issued and nothing is
+#' replaced for that pattern / replacement pair. Unlike
+#' \code{\link[base]{gsub}}, the first argument is the vector where matches
+#' are sought, meaning that it can be easily used in a pipeline.
+#'
+#' The default behaviour is to look for an exact match of pattern. This means
+#' that only those elements in \code{x} that fully match \code{pattern} are
+#' replaced. See examples for how this works in practice.
+#'
+#' @param x A character vector.
+#' @param pattern A vector of patterns to replace.
+#' @param replacement A character vector of the same length as \code{pattern}
+#'   with the corresponding replacements.
+#' @param exact A logical to denote whether \code{pattern} is to be an exact
+#'   match (the default). When FALSE, \code{pattern} is treated as a regular
+#'   expression.
+#' @param ... Other arguments to \code{gsub}.
+#'
+#' @return A character vector of the same length as \code{x} with matched
+#'   patterns replaced.
+#' @export
+#'
+#' @examples
+#' # Capitalise some letters
+#' psub(letters[1:7], c("a", "c", "e"), c("A", "C", "E"))
+#'
+#' # By default exact matches are sought
+#' psub("ace", c("a", "c", "e"), c("A", "C", "E"))
+#'
+#' # Use exact = FALSE to replace a regular expression
+#' psub("ace", c("a", "c", "e"), c("A", "C", "E"), exact = FALSE)
+#'
+#' # Replace selected values in a vector
+#' psub(c("one", "two", "three"), c("one", "three"), c("ONE", "THREE"))
+psub <- function(x, pattern, replacement, exact = TRUE, ...) {
+
+  if (!is.character(x)) {
+    stop("`x` must be of type character")
+  }
+  if (!is.character(pattern)) {
+    stop("`pattern` must be of type character")
+  }
+  if (!is.character(replacement)) {
+    stop("`replacement` must be of type character")
+  }
+
+  if (length(pattern) != length(replacement)) {
+    stop("`pattern` and `replacement` must be the same length")
+  }
+
+  for (i in seq_along(pattern)) {
+    gsub_pattern <- pattern[i]
+    if (exact) {
+      if (substr(gsub_pattern, 1, 1) != "^") {
+        gsub_pattern <- paste0("^", gsub_pattern)
+      }
+      if (substr(gsub_pattern, nchar(gsub_pattern), nchar(gsub_pattern)) != "$") {
+        gsub_pattern <- paste0(gsub_pattern, "$")
+      }
+    }
+    if (!any(grepl(gsub_pattern, x))) {
+      warning("\"", pattern[i], "\" not found in `x`.")
+    }
+    x <- gsub(gsub_pattern, replacement[i], x, ...)
+  }
+
+  x
+}

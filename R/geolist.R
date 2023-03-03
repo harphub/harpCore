@@ -103,7 +103,7 @@ geofield_info <- function(x) {
 #' @param x object to be tested
 #' @export
 is_geolist <- function(x) {
-  inherits(x, "geolist") & all(sapply(x, meteogrid::is.geofield))
+  inherits(x, "geolist") && all(sapply(x, meteogrid::is.geofield))
 }
 
 #' @export

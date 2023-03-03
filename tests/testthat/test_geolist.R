@@ -379,7 +379,7 @@ test_that("check geofield ops for logicals", {
   )
 })
 
-test_that("geofiled ops for different domains", {
+test_that("geofield ops for different domains", {
   expect_error(
     test_geof[[1]] + test_geof[[3]],
     "geofields must be on the same domain"
