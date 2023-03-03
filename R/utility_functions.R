@@ -126,3 +126,53 @@ psub <- function(x, pattern, replacement, exact = TRUE, ...) {
 
   x
 }
+
+#' Extract numeric values from a string or vector of strings
+#'
+#' If you have a string that contains characters and numbers,
+#' \code{extract_numeric} will extract the numeric parts. Anything between the
+#' numerics in the string will result in a separate element in the output.
+#'
+#' If a vector of strings is passed and you want to return something of the
+#' same length, set \code{delist = FALSE} and a list will be returned with the
+#' same length as the input vector.
+#'
+#' @param x A character vector.
+#' @param as_list Logical. Whether to return a list. See Details.
+#'
+#' @return A vector or list of numerics
+#' @export
+#'
+#' @examples
+#' extract_numeric("3h")
+#'
+#' # With decimals
+#' extract_numeric("3h 4h 5.5h")
+#'
+#' # With negative values
+#' extract_numeric("-2s4s 6s")
+#'
+#' # With a vector of values
+#' extract_numeric(c("2h", "3h", "7h"))
+#' extract_numeric(c("2h", "3h 4h 5h 6h", "7h"))
+#'
+#' # Return a list of the same length as the vector
+#' extract_numeric(c("2h", "3h 4h 5h 6h", "7h"), as_list = TRUE)
+extract_numeric <- function(x, as_list = FALSE) {
+  if (is.numeric(x)) {
+    return(x)
+  }
+  stopifnot(is.character(x))
+  x <- regmatches(
+    x,
+    gregexpr(
+      "(?>-)*[0-9()]+\\.*[0-9()]*",
+      x,
+      perl = TRUE
+    )
+  )
+  if (as_list) {
+    return(lapply(x, as.numeric))
+  }
+  as.numeric(unlist(x))
+}

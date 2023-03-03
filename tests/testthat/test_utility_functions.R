@@ -38,3 +38,32 @@ test_that("exact pattern matching in psub", {
     c("One", "TwO", "Three")
   )
 })
+
+# extract numeric
+test_that("extract_numeric extracts the correct numbers for a single string", {
+  expect_equal(extract_numeric("23mnmn56mmnm788m"), c(23, 56, 788))
+  expect_equal(extract_numeric("mnmn56mmnm788m44"), c(56, 788, 44))
+  expect_equal(extract_numeric("23.321897mnmn56mmnm788.44332m"), c(23.321897, 56, 788.44332))
+  expect_equal(extract_numeric("-23mnmn56mmnm-788m"), c(-23, 56, -788))
+  expect_equal(extract_numeric("-23.443mnmn56mmnm-788.292m"), c(-23.443, 56, -788.292))
+})
+
+test_that("extract_numeric extracts the correct numbers for a vector of strings", {
+  expect_equal(extract_numeric(c("23mn", "mn56mm", "cs788")), c(23, 56, 788))
+  expect_equal(extract_numeric(c("mnmn56", "mmnm788", "m44")), c(56, 788, 44))
+  expect_equal(extract_numeric(c("23.321897mn", "mn56mm", "nm788.44332m")), c(23.321897, 56, 788.44332))
+  expect_equal(extract_numeric(c("-23mn", "mn56mm", "nm-788m")), c(-23, 56, -788))
+  expect_equal(extract_numeric(c("-23.443mn", "mn56mmn", "m-788.292m")), c(-23.443, 56, -788.292))
+  expect_equal(extract_numeric(c("1h", "2h d4h, 3", "f4.5f4.6", "d-4-8.7d")), c(1, 2, 4, 3, 4.5, 4.6, -4, -8.7))
+  expect_equal(
+    extract_numeric(c("1h", "2h d4h, 3", "f4.5f4.6", "d-4-8.7d"), as_list = TRUE),
+    list(1, c(2, 4, 3), c(4.5, 4.6), c(-4, -8.7))
+  )
+})
+
+test_that("extract_numeric throws error for non character or numeric", {
+  expect_error(extract_numeric(TRUE))
+  expect_error(extract_numeric(complex(real = 4, imaginary = 5)))
+  expect_error(extract_numeric(Sys.time()))
+  expect_equal(extract_numeric(c(1, 2, -3.4)), c(1, 2, -3.4))
+})
