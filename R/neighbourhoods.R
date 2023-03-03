@@ -153,6 +153,10 @@ nbhd_smooth.array <- function(
   if (!length(dim(x)) == 2) {
     stop("`x` must be a 2-d array")
   }
+  if (is.logical(x)) {
+    x <- array(as.numeric(x), dim(x))
+  }
+  stopifnot(is.numeric(x))
   boundary <- match.arg(boundary)
 
   cpp_nbhd_smooth(
@@ -254,6 +258,10 @@ cumsum_2d.array <- function(
   if (!length(dim(x)) == 2) {
     stop("`x` must be a 2-d array")
   }
+  if (is.logical(x)) {
+    x <- array(as.numeric(x), dim(x))
+  }
+  stopifnot(is.numeric(x))
 
   cpp_cumsum2d(x, threshold, comparator, include_low, include_high)
 }
@@ -304,6 +312,10 @@ nbhd_smooth_cumsum.array <- function(
   if (!length(dim(x)) == 2) {
     stop("`x` must be a 2-d array")
   }
+  if (is.logical(x)) {
+    x <- array(as.numeric(x), dim(x))
+  }
+  stopifnot(is.numeric(x))
   boundary <- match.arg(boundary)
   cpp_nbhd_smooth_cumsum(x, radius, boundary)
 }
