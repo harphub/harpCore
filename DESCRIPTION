@@ -28,3 +28,5 @@ Depends:
 LazyData: true
 LinkingTo: 
     Rcpp
+URL: https://github.com/andrew-MET/harpCore
+BugReports: https://github.com/andrew-MET/harpCore/issues
