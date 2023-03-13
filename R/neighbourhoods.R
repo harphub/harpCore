@@ -277,7 +277,7 @@ cumsum_2d.geolist <- function(
   as_geolist(
     lapply(
       x,
-      cumsum2d,
+      cumsum_2d,
       threshold,
       comparator,
       include_low,
