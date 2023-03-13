@@ -55,11 +55,24 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_paste0
+CharacterVector cpp_paste0(std::vector<std::string> x, std::vector<std::string> y);
+RcppExport SEXP _harpCore_cpp_paste0(SEXP xSEXP, SEXP ySEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::vector<std::string> >::type x(xSEXP);
+    Rcpp::traits::input_parameter< std::vector<std::string> >::type y(ySEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_paste0(x, y));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_harpCore_cpp_cumsum2d", (DL_FUNC) &_harpCore_cpp_cumsum2d, 5},
     {"_harpCore_cpp_nbhd_smooth_cumsum", (DL_FUNC) &_harpCore_cpp_nbhd_smooth_cumsum, 3},
     {"_harpCore_cpp_nbhd_smooth", (DL_FUNC) &_harpCore_cpp_nbhd_smooth, 7},
+    {"_harpCore_cpp_paste0", (DL_FUNC) &_harpCore_cpp_paste0, 2},
     {NULL, NULL, 0}
 };
 

@@ -67,9 +67,9 @@ test_that("bind can combine columns that don't exist in all data frames", {
     rename_with(
       as_harp_df(tibble::tibble(
         fcst_model = c(rep("a", nrow(ens_point_df)), rep("b", nrow(ens_point_df))),
-        fcdate = rep(ens_point_df$fcdate, 2),
+        fcst_dttm = rep(ens_point_df$fcst_dttm, 2),
         lead_time = rep(ens_point_df$lead_time, 2),
-        validdate = rep(ens_point_df$validdate, 2),
+        valid_dttm = rep(ens_point_df$valid_dttm, 2),
         SID = rep(ens_point_df$SID, 2),
         point_mbr000 = rep(ens_point_df$point_mbr000, 2),
         point_mbr001 = rep(ens_point_df$point_mbr001, 2),
@@ -84,9 +84,9 @@ test_that("bind can combine columns that don't exist in all data frames", {
     rename_with(
       as_harp_df(tibble::tibble(
         fcst_model = c(rep("a", nrow(ens_grid_df)), rep("b", nrow(ens_grid_df))),
-        fcdate = rep(ens_grid_df$fcdate, 2),
+        fcst_dttm = rep(ens_grid_df$fcst_dttm, 2),
         lead_time = rep(ens_grid_df$lead_time, 2),
-        validdate = rep(ens_grid_df$validdate, 2),
+        valid_dttm = rep(ens_grid_df$valid_dttm, 2),
         grid_mbr000 = as_geolist(rep(ens_grid_df$grid_mbr000, 2)),
         grid_mbr001 = as_geolist(rep(ens_grid_df$grid_mbr001, 2)),
         grid_mbr003 = as_geolist(c(lapply(1:nrow(ens_grid_df), function(x) NULL), ens_grid_df$grid_mbr001))

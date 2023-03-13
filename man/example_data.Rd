@@ -11,13 +11,14 @@
 \alias{ens_point_list}
 \alias{det_grid_list}
 \alias{ens_grid_list}
+\alias{anl_grid_df}
 \title{Data for examples}
 \format{
 A \code{harp_df} data frame or \code{harp_list}
 \describe{
-\item{fcdate}{Forecast start date-time}
+\item{fcst_dttm}{Forecast start date-time}
 \item{lead_time}{Forecast lead time in hours}
-\item{validdate}{Forecast valid date-time}
+\item{valid_dttm}{Forecast valid date-time}
 \item{SID}{ID of observation station}
 \item{point_det}{Deterministic point forecast value}
 \item{point_mbr000}{Point forecast value for ensemble member 000}
@@ -25,6 +26,7 @@ A \code{harp_df} data frame or \code{harp_list}
 \item{grid_det}{Deterministic gridded forecast}
 \item{grid_mbr000}{Gridded forecast for ensemble member 000}
 \item{grid_mbr001}{Gridded forecast for ensemble member 001}
+\item{grid_anl}{Gridded analysis}
 }
 }
 \usage{
@@ -43,6 +45,8 @@ ens_point_list
 det_grid_list
 
 ens_grid_list
+
+anl_grid_df
 }
 \description{
 Data used for demonstrating function usage in examples. The data are random

@@ -22,14 +22,14 @@ depth <- function(x,x_depth = 0){
 #' \link[tibble]{tibble} it will be coerced into one to ensure an easier to
 #' read print method.
 #'
-#' @param x a data frame with a `validdate` column.
+#' @param x a data frame with a `valid_dttm` column.
 #'
 #' @return a data frame with the appropriate class
 #' @export
 #'
 #' @examples
 #' library(dplyr)
-#' d_f <- data.frame(validdate = as_datetime(seq_dates(2021010100, 2021010123)))
+#' d_f <- data.frame(valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)))
 #' as_harp_df(d_f)
 #' as_harp_df(mutate(d_f, fcst_det = runif(24)))
 #' as_harp_df(mutate(d_f, fcst_mbr000 = runif(24), fcst_mbr001 = runif(24)))
@@ -43,13 +43,18 @@ as_harp_df <- function(x) {
 
 #' @export
 as_harp_df.data.frame <- function(x) {
-  has_validdate <- is.element("validdate", colnames(x))
-  if (!has_validdate) {
-    stop("Data frame must have `validdate` column.")
+  has_valid_dttm <- is.element("valid_dttm", colnames(x))
+  if (!has_valid_dttm) {
+    stop("Data frame must have `valid_dttm` column.")
+  }
+  if (!inherits(x[["valid_dttm"]], "POSIXct")) {
+    stop("`valid_dttm` column must be a date-time class (POSIXct).")
   }
   if (!tibble::is_tibble(x)) {
     x <- tibble::as_tibble(x)
   }
+  # If already a harp_df, remove all harp classes and start again
+  class(x) <- grep("^harp_", class(x), invert = TRUE, value = TRUE)
   classes <- c("harp_df", class(x))
 
   # The spatial class depends on the presence of geolist or xslist columns.
@@ -65,18 +70,86 @@ as_harp_df.data.frame <- function(x) {
 
   # If the data frame is a forecast it will have either a mbr
   # or a det suffix. Note it could be lagged ensemble so the
-  # mbr columns don't necessarily end the same way.
+  # mbr columns don't necessarily end the same way. Gridded
+  # analysis data frames have columns with the suffix anl
 
   col_names <- colnames(x)
   if (any(grepl("_det$", col_names))) {
     classes <- c(sub("harp", "harp_det", classes[1]), classes)
+    x[["fcst_model"]] <- gsub(
+      "_det$", "", grep("_det$", colnames(x), value = TRUE)
+    )
+    colnames(x) <- gsub("[[:graph:]]+_det$", "fcst", colnames(x))
+    x <- dplyr::relocate(x, dplyr::all_of("fcst_model"))
   }
   if (any(grepl("_mbr[[:digit:]]{3}", col_names))) {
     classes <- c(sub("harp", "harp_ens", classes[1]), classes)
   }
+  if (any(grepl("_anl$", col_names))) {
+    classes <- c(sub("harp", "harp_anl", classes[1]), classes)
+    x[["anl_model"]] <- gsub(
+      "_anl$", "", grep("_anl$", colnames(x), value = TRUE)
+    )
+    colnames(x) <- gsub("[[:graph:]]+_anl$", "anl", colnames(x))
+    x <- dplyr::relocate(x, dplyr::all_of("anl_model"))
+  }
 
   structure(x, class = classes)
 
+}
+
+#' @rdname as_harp_df
+#' @export
+is_harp_df <- function(x) {
+  inherits(x, "harp_df")
+}
+
+#' @export
+print.harp_det_point_df <- function(x, ...) {
+  cat(cli::col_green("::deterministic point forecast:: "))
+  NextMethod()
+}
+
+#' @export
+print.harp_det_grid_df <- function(x, ...) {
+  cat(cli::col_green("::deterministic gridded forecast:: "))
+  NextMethod()
+}
+
+#' @export
+print.harp_det_xs_df <- function(x, ...) {
+  cat(cli::col_green("::deterministic cross-section forecast:: "))
+  NextMethod()
+}
+
+#' @export
+print.harp_ens_point_df <- function(x, ...) {
+  cat(cli::col_green("::ensemble point forecast:: "))
+  NextMethod()
+}
+
+#' @export
+print.harp_ens_grid_df <- function(x, ...) {
+  cat(cli::col_green("::ensemble gridded forecast:: "))
+  NextMethod()
+}
+
+#' @export
+print.harp_ens_xs_df <- function(x, ...) {
+  cat(cli::col_green("::ensemble cross-section forecast:: "))
+  NextMethod()
+}
+
+#' @export
+print.harp_anl_grid_df <- function(x, ...) {
+  cat(cli::col_green("::gridded analysis:: "))
+  NextMethod()
+}
+
+#' @export
+print.harp_anl_xs_df <- function(x, ...) {
+  cat(cli::col_green("::cross-section analysis:: "))
+  NextMethod()
 }
 
 #' Create a list of harp data frames
@@ -89,22 +162,22 @@ as_harp_df.data.frame <- function(x) {
 #' @examples
 #' as_harp_list(
 #'   a = as_harp_df(data.frame(
-#'     validdate = seq_dates(2021010100, 2021010123),
+#'     valid_dttm = seq_dttm(2021010100, 2021010123),
 #'     a_det = runif(24)
 #'   )),
 #'   b = as_harp_df(data.frame(
-#'     validdate = seq_dates(2021010100, 2021010123),
+#'     valid_dttm = seq_dttm(2021010100, 2021010123),
 #'     b_det = runif(24)
 #'   ))
 #' )
 #' as_harp_list(
 #'   a = as_harp_df(data.frame(
-#'     validdate = seq_dates(2021010100, 2021010123),
+#'     valid_dttm = seq_dttm(2021010100, 2021010123),
 #'     a_mbr000  = runif(24),
 #'     a_mbr001  = runif(24)
 #'   )),
 #'   b = as_harp_df(data.frame(
-#'     validdate = seq_dates(2021010100, 2021010123),
+#'     valid_dttm = seq_dttm(2021010100, 2021010123),
 #'     b_mbr000 = runif(24),
 #'     b_mbr001 = runif(24)
 #'   ))
@@ -124,6 +197,14 @@ as_harp_list <- function(...) {
   }
   structure(x, class = c("harp_list", class(x)))
 }
+
+#' @rdname as_harp_list
+#' @param x An object to test.
+#' @export
+is_harp_list <- function(x) {
+  inherits(x, "harp_list")
+}
+
 
 #' @export
 print.harp_list <- function(x, ...) {

@@ -179,3 +179,15 @@ NumericMatrix cpp_nbhd_smooth(
 ) {
   return cpp_nbhd_smooth_cumsum(cpp_cumsum2d(x, threshold, comparator, includeLow, includeHigh), rad, boundaryCondition);
 }
+
+// [[Rcpp::export]]
+CharacterVector cpp_paste0(std::vector<std::string> x, std::vector<std::string> y) {
+  int len = x.size();
+  CharacterVector result(len);
+  for (int i = 0; i < len; i++) {
+    result[i] = x[i] + y[i];
+  }
+  return result;
+}
+
+

@@ -25,7 +25,7 @@ make_geolist <- function(len) {
   ))
 }
 test_df <- data.frame(
-  validdate = as_datetime(seq_dates(2021010100, 2021010123)),
+  valid_dttm   = as_dttm(seq_dttm(2021010100, 2021010123)),
   point_det    = runif(24),
   point_mbr000 = runif(24),
   point_mbr001 = runif(24)
@@ -38,10 +38,10 @@ main_class <- c("harp_df", "tbl_df", "tbl", "data.frame")
 
 # Tests
 test_that("as_harp_df throws errors when needed", {
-  # No validdate column
+  # No valid_dttm column
   expect_error(
     as_harp_df(test_df[-1]),
-    "Data frame must have `validdate` column."
+    "Data frame must have `valid_dttm` column."
   )
   # Not a data frame
   expect_error(as_harp_df(2), "no applicable method")
@@ -65,6 +65,8 @@ test_that("as_harp_df adds the correct classes", {
     structure(test_df[c(1, 6, 7)], class = c("harp_ens_grid_df", "harp_grid_df", main_class))
   )
 })
+
+test_df <- test_df[c(1, 6, 7)]
 
 # Tests for harp_list
 test_that("as_harp_list throws error for non harp_df", {

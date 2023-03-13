@@ -3,17 +3,17 @@
 \name{unique_col}
 \alias{unique_col}
 \alias{unique_stations}
-\alias{unique_validdate}
-\alias{unique_fcdate}
+\alias{unique_valid_dttm}
+\alias{unique_fcst_dttm}
 \title{Extract unique values from a data frame column}
 \usage{
 unique_col(.data, col)
 
 unique_stations(.data)
 
-unique_validdate(.data)
+unique_valid_dttm(.data)
 
-unique_fcdate(.data)
+unique_fcst_dttm(.data)
 }
 \arguments{
 \item{.data}{A data frame or harp_list}
@@ -31,13 +31,13 @@ in the list are extracted as a single vector. If a column is not found,
 a warning is issued and NULL is returned.
 }
 \details{
-\code{unique_stations}, \code{unique_fcdate} and \code{unique_validdate}
+\code{unique_stations}, \code{unique_fcst_dttm} and \code{unique_valid_dttm}
 are wrappers around \code{unique_col} that extract the unique stations,
 valid date-time and forecast start date-time using the standard harp
-column names "SID", "validdate" and "fcdate" respectively.
+column names "SID", "valid_dttm" and "fcst_dttm" respectively.
 }
 \examples{
-unique_col(det_point_df, fcdate)
+unique_col(det_point_df, fcst_dttm)
 unique_col(det_point_df, SID)
 
 # Works with quoted column names too

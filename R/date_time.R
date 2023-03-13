@@ -11,7 +11,7 @@
 #' where necessary. In the case of numeric input, the number is assumed to be in
 #' seconds since 1970-01-01 00:00:00 in UTC.
 #'
-#' \code{as_str_datetime} returns a string with trailing zeros truncated. The
+#' \code{as_str_dttm} returns a string with trailing zeros truncated. The
 #' other functions are named such that the output is truncated to the precision
 #' given by the function name. Note that no rounding is done, only truncation.
 #' There are all lower case versions of functions as well as those with Y, M, D
@@ -23,10 +23,10 @@
 #' @export
 #'
 #' @examples
-#' as_str_datetime(as.POSIXct("2022-03-08 00:00:00"))
-#' as_str_datetime(as.POSIXct("2022-03-08 10:00:00"))
-#' as_str_datetime(as.POSIXct("2022-03-08 10:30:00"))
-#' as_str_datetime(as.POSIXct("2022-03-08 10:30:20"))
+#' as_str_dttm(as.POSIXct("2022-03-08 00:00:00"))
+#' as_str_dttm(as.POSIXct("2022-03-08 10:00:00"))
+#' as_str_dttm(as.POSIXct("2022-03-08 10:30:00"))
+#' as_str_dttm(as.POSIXct("2022-03-08 10:30:20"))
 #' as_YMD(Sys.time())
 #' as_YMDh(Sys.time())
 #' as_YMDhm(Sys.time())
@@ -36,7 +36,7 @@
 #' as_YMDhm(as.numeric(Sys.time()))
 #' as_YMDhms(as.numeric(Sys.time()))
 #' @export
-as_str_datetime <- function(x) {
+as_str_dttm <- function(x) {
   x <- as_YMDhms(x)
 
   trailing_0s <- min(
@@ -57,7 +57,7 @@ as_str_datetime <- function(x) {
   substr(x, 1, 14 - trailing_0s)
 }
 
-#' @rdname as_str_datetime
+#' @rdname as_str_dttm
 #' @export
 as_YMD <- function(x) {
   UseMethod("as_YMD")
@@ -73,13 +73,13 @@ as_YMD.numeric <- function(x) {
   as_YMD(as.POSIXct(x, origin = "1970-01-01 00:00:00", tz = "UTC"))
 }
 
-#' @rdname as_str_datetime
+#' @rdname as_str_dttm
 #' @export
 as_ymd <- function(x) {
   as_YMD(x)
 }
 
-#' @rdname as_str_datetime
+#' @rdname as_str_dttm
 #' @export
 as_YMDh <- function(x) {
   UseMethod("as_YMDh")
@@ -95,13 +95,13 @@ as_YMDh.numeric <- function(x) {
   as_YMDh(as.POSIXct(x, origin = "1970-01-01 00:00:00", tz = "UTC"))
 }
 
-#' @rdname as_str_datetime
+#' @rdname as_str_dttm
 #' @export
 as_ymdh <- function(x) {
   as_YMDh(x)
 }
 
-#' @rdname as_str_datetime
+#' @rdname as_str_dttm
 #' @export
 as_YMDhm <- function(x) {
   UseMethod("as_YMDhm")
@@ -117,13 +117,13 @@ as_YMDhm.numeric <- function(x) {
   as_YMDhm(as.POSIXct(x, origin = "1970-01-01 00:00:00", tz = "UTC"))
 }
 
-#' @rdname as_str_datetime
+#' @rdname as_str_dttm
 #' @export
 as_ymdhm <- function(x) {
   as_YMDhm(x)
 }
 
-#' @rdname as_str_datetime
+#' @rdname as_str_dttm
 #' @export
 as_YMDhms <- function(x) {
   UseMethod("as_YMDhms")
@@ -139,7 +139,7 @@ as_YMDhms.numeric <- function(x) {
   as_YMDhms(as.POSIXct(x, origin = "1970-01-01 00:00:00", tz = "UTC"))
 }
 
-#' @rdname as_str_datetime
+#' @rdname as_str_dttm
 #' @export
 as_ymdhms <- function(x) {
   as_YMDhms(x)
@@ -160,29 +160,29 @@ as_ymdhms <- function(x) {
 #'
 #' @examples
 #' # Character input
-#' as_datetime("20220203")
-#' as_datetime("2022020306")
-#' as_datetime("202202030630")
-#' as_datetime("20220203063022")
+#' as_dttm("20220203")
+#' as_dttm("2022020306")
+#' as_dttm("202202030630")
+#' as_dttm("20220203063022")
 #' #
 #' # Numeric input
-#' as_datetime(20220203)
-#' as_datetime(2022020306)
-#' as_datetime(202202030630)
-#' as_datetime(20220203063022)
+#' as_dttm(20220203)
+#' as_dttm(2022020306)
+#' as_dttm(202202030630)
+#' as_dttm(20220203063022)
 #'
-as_datetime <- function(x) {
-  UseMethod("as_datetime")
+as_dttm <- function(x) {
+  UseMethod("as_dttm")
 }
 
 #' @export
-as_datetime.character <- function(x) {
-  unixtime_to_datetime(as_unixtime(x))
+as_dttm.character <- function(x) {
+  unixtime_to_dttm(as_unixtime(x))
 }
 
 #' @export
-as_datetime.numeric <- function(x) {
-  as_datetime(as.character(x))
+as_dttm.numeric <- function(x) {
+  as_dttm(as.character(x))
 }
 
 
@@ -252,7 +252,7 @@ as_unixtime.character <- function(x) {
 
 #' @export
 as_unixtime.numeric <- function(x) {
-  as_unixtime(as_datetime(x))
+  as_unixtime(as_dttm(x))
 }
 
 #' Convert unix time to other formats.
@@ -265,69 +265,69 @@ as_unixtime.numeric <- function(x) {
 #'   format
 #'
 #' @examples
-#' unixtime_to_datetime(Sys.time())
+#' unixtime_to_dttm(Sys.time())
 #' unixtime_to_ymd(Sys.time())
 #' unixtime_to_ymdh(Sys.time())
 #' unixtime_to_ymdhm(Sys.time())
 #' unixtime_to_ymdhms(Sys.time())
-#' unixtime_to_str_datetime(Sys.time())
+#' unixtime_to_str_dttm(Sys.time())
 #' @export
-unixtime_to_datetime <- function(x) {
+unixtime_to_dttm <- function(x) {
   as.POSIXct(x, tz = "UTC", origin = "1970-01-01 00:00:00")
 }
 
-#' @rdname unixtime_to_datetime
+#' @rdname unixtime_to_dttm
 #' @export
 unixtime_to_YMD <- function(x) {
-  as_ymd(unixtime_to_datetime(x))
+  as_ymd(unixtime_to_dttm(x))
 }
 
-#' @rdname unixtime_to_datetime
+#' @rdname unixtime_to_dttm
 #' @export
 unixtime_to_YMDh <- function(x) {
-  as_ymdh(unixtime_to_datetime(x))
+  as_ymdh(unixtime_to_dttm(x))
 }
 
-#' @rdname unixtime_to_datetime
+#' @rdname unixtime_to_dttm
 #' @export
 unixtime_to_YMDhm <- function(x) {
-  as_ymdhm(unixtime_to_datetime(x))
+  as_ymdhm(unixtime_to_dttm(x))
 }
 
-#' @rdname unixtime_to_datetime
+#' @rdname unixtime_to_dttm
 #' @export
 unixtime_to_YMDhms <- function(x) {
-  as_ymdhms(unixtime_to_datetime(x))
+  as_ymdhms(unixtime_to_dttm(x))
 }
 
-#' @rdname unixtime_to_datetime
+#' @rdname unixtime_to_dttm
 #' @export
 unixtime_to_ymd <- function(x) {
-  as_ymd(unixtime_to_datetime(x))
+  as_ymd(unixtime_to_dttm(x))
 }
 
-#' @rdname unixtime_to_datetime
+#' @rdname unixtime_to_dttm
 #' @export
 unixtime_to_ymdh <- function(x) {
-  as_ymdh(unixtime_to_datetime(x))
+  as_ymdh(unixtime_to_dttm(x))
 }
 
-#' @rdname unixtime_to_datetime
+#' @rdname unixtime_to_dttm
 #' @export
 unixtime_to_ymdhm <- function(x) {
-  as_ymdhm(unixtime_to_datetime(x))
+  as_ymdhm(unixtime_to_dttm(x))
 }
 
-#' @rdname unixtime_to_datetime
+#' @rdname unixtime_to_dttm
 #' @export
 unixtime_to_ymdhms <- function(x) {
-  as_ymdhms(unixtime_to_datetime(x))
+  as_ymdhms(unixtime_to_dttm(x))
 }
 
-#' @rdname unixtime_to_datetime
+#' @rdname unixtime_to_dttm
 #' @export
-unixtime_to_str_datetime <- function(x) {
-  as_str_datetime(unixtime_to_datetime(x))
+unixtime_to_str_dttm <- function(x) {
+  as_str_dttm(unixtime_to_dttm(x))
 }
 
 ###
@@ -355,11 +355,11 @@ unixtime_to_str_datetime <- function(x) {
 #' @export
 #'
 #' @examples
-#' seq_dates(20220306, 20220307)
-#' seq_dates(20220306, 20220307, by = "30m")
-#' seq_dates(20220301, 20220331, by = "1d")
-#' seq_dates(202203061030, 202203061045, by = "30s")
-seq_dates <- function(start_dttm, end_dttm, by = "1h") {
+#' seq_dttm(20220306, 20220307)
+#' seq_dttm(20220306, 20220307, by = "30m")
+#' seq_dttm(20220301, 20220331, by = "1d")
+#' seq_dttm(202203061030, 202203061045, by = "30s")
+seq_dttm <- function(start_dttm, end_dttm, by = "1h") {
 
   if (length(by) != 1) {
     stop("Only one value can be given for `by`.")
@@ -378,23 +378,25 @@ seq_dates <- function(start_dttm, end_dttm, by = "1h") {
     stop("Unable to parse units for `by`. Use d, h, m or s. e.g. by = \"6h\"")
   }
 
-  as_str_datetime(seq(start_dttm, end_dttm, by_secs))
+  as_str_dttm(seq(start_dttm, end_dttm, by_secs))
 }
 
 to_seconds <- function(x) {
-  num <- sapply(
-    regmatches(x, gregexpr('\\(?[-,0-9,.]+', x)),
-    function(y) as.numeric(y[1])
-  )
-  unit <- sapply(
-    regmatches(x, gregexpr('\\(?[a-z]+', x)),
-    function(y) y[1]
-  )
-  unit[!unit %in% c("s", "m", "h", "d")] <- NA
-  unit[unit == "s"] <- 1
-  unit[unit == "m"] <- 60
-  unit[unit == "h"] <- 3600
-  unit[unit == "d"] <- 3600 * 24
-
-  as.numeric(unit) * num
+  num  <- as.numeric(substr(x, 1, nchar(x) - 1))
+  mult <- time_multiplier(substr(x, nchar(x), nchar(x)))
+  result <- num * mult
+  names(result) <- x
+  result
 }
+
+time_multiplier <- Vectorize(function(x) {
+  switch(
+    x,
+    "s" = 1,
+    "m" = 60,
+    "h" = 3600,
+    "d" = 86400,
+    "w" = 604800,
+    NA
+  )
+})
