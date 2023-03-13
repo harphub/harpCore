@@ -2,12 +2,15 @@
 % Please edit documentation in R/data_structures.R
 \name{as_harp_df}
 \alias{as_harp_df}
+\alias{is_harp_df}
 \title{Coerce to a harp_df data frame}
 \usage{
 as_harp_df(x)
+
+is_harp_df(x)
 }
 \arguments{
-\item{x}{a data frame with a \code{validdate} column.}
+\item{x}{a data frame with a \code{valid_dttm} column.}
 }
 \value{
 a data frame with the appropriate class
@@ -21,7 +24,7 @@ read print method.
 }
 \examples{
 library(dplyr)
-d_f <- data.frame(validdate = as_datetime(seq_dates(2021010100, 2021010123)))
+d_f <- data.frame(valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)))
 as_harp_df(d_f)
 as_harp_df(mutate(d_f, fcst_det = runif(24)))
 as_harp_df(mutate(d_f, fcst_mbr000 = runif(24), fcst_mbr001 = runif(24)))

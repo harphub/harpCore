@@ -8,10 +8,10 @@
 #' in the list are extracted as a single vector. If a column is not found,
 #' a warning is issued and NULL is returned.
 #'
-#' \code{unique_stations}, \code{unique_fcdate} and \code{unique_validdate}
+#' \code{unique_stations}, \code{unique_fcst_dttm} and \code{unique_valid_dttm}
 #' are wrappers around \code{unique_col} that extract the unique stations,
 #' valid date-time and forecast start date-time using the standard harp
-#' column names "SID", "validdate" and "fcdate" respectively.
+#' column names "SID", "valid_dttm" and "fcst_dttm" respectively.
 #'
 #' @param .data A data frame or harp_list
 #' @param col The column from which to extract the unique values. Can be quoted
@@ -21,7 +21,7 @@
 #' @export
 #'
 #' @examples
-#' unique_col(det_point_df, fcdate)
+#' unique_col(det_point_df, fcst_dttm)
 #' unique_col(det_point_df, SID)
 #'
 #' # Works with quoted column names too
@@ -59,14 +59,14 @@ unique_stations <- function(.data) {
 
 #' @rdname unique_col
 #' @export
-unique_validdate <- function(.data) {
-  unique_col(.data, "validdate")
+unique_valid_dttm <- function(.data) {
+  unique_col(.data, "valid_dttm")
 }
 
 #' @rdname unique_col
 #' @export
-unique_fcdate <- function(.data) {
-   unique_col(.data, "fcdate")
+unique_fcst_dttm <- function(.data) {
+   unique_col(.data, "fcst_dttm")
 }
 
 #' Select ensemble members
@@ -324,15 +324,15 @@ pivot_to_wide <- function(.data) {
 #' @export
 #'
 #' @examples
-#' expand_date(det_point_df, fcdate)
-#' expand_date(det_point_list, validdate)
-#' expand_date(ens_point_df, validdate, text_months = TRUE)
+#' expand_date(det_point_df, fcst_dttm)
+#' expand_date(det_point_list, valid_dttm)
+#' expand_date(ens_point_df, valid_dttm, text_months = TRUE)
 #'
 #' # Column name can be quoted
-#' expand_date(ens_grid_df, "fcdate")
+#' expand_date(ens_grid_df, "fcst_dttm")
 #'
 #' # If using a variable, wrap in {{<var>}}
-#' my_col <- "fcdate"
+#' my_col <- "fcst_dttm"
 #' expand_date(ens_grid_df, {{my_col}})
 expand_date <- function(.data, col, text_months = FALSE) {
   UseMethod("expand_date")
@@ -350,7 +350,7 @@ expand_date.data.frame <- function(.data, col, text_months = FALSE) {
     warning("Column: ", col, " is not a date-time column.")
     return(invisible(.data))
   }
-  prefix <- gsub("date$", "", col)
+  prefix <- gsub("_dttm$", "", col)
   .data[[paste0(prefix, "_year")]] <- as.integer(format(dates, "%Y"))
   if (text_months) {
     .data[[paste0(prefix, "_month")]] <- format(dates, "%b")
@@ -369,4 +369,338 @@ expand_date.harp_list <- function(.data, col, text_months = FALSE) {
   as_harp_list(lapply(.data, expand_date, !!col, text_months))
 }
 
+#' Join data to a forecast
+#'
+#' \code{join_to_fcst} is a special case of the join family of functions. It's
+#' primary purpose is to join data frame of observations to a data frame or
+#' harp_list of forecasts such that forecast - observation pairs are on the
+#' same row in the joined data frame. An extra check is made to make sure that
+#' the forecast data and observations data are in the same units.
+#'
+#' @param .fcst A \code{harp_df} data frame or a \code{harp_list}.
+#' @param .join A data frame to join to the forecast.
+#' @param join_type How to join the data frame. Acceptable values are: "inner",
+#'   "left", "right", "full", "semi", "anti". See \code{\link[dplyr]{join}} for
+#'   more details.
+#' @param by Which columns to join by - if set to NULL a natural join will be
+#'   done, using all variables with common names across .fcst and .join. The
+#'   default is to join using all common columns in .fcst and .join excluding
+#'   lat, lon and elev. This is because they may be stored to different levels of
+#'   precision and the join will thus fail.
+#' @param latlon Logical. Whether to include latitude and longitude columns in
+#'   the default for \code{by}. The default is FALSE.
+#' @param elev Logical. Whether to include the station elevation column in
+#'   the default for \code{by}. The default is FALSE.
+#' @param force Set to TRUE to force the join to happen even if the units
+#'   in .fcst and .join are not compatible.
+#' @param keep_x,keep_y Where duplicate column names are found, but not used in
+#'   the join, these arguments are used to indicate whether the duplicate
+#'   columns from .fcst (\code{keep_x}), or .join (\code{keep_y}) should be
+#'   kept. The default is \code{keep_x = TRUE, keep_y = FALSE}.
+#' @param ... Other arguments for \link[dplyr]{join}.
+#'
+#' @return The input forecast data frame with column(s) added from \code{.join}.
+#' @export
+#'
+#' @examples
+#' # Make some fake observations
+#' library(tibble)
+#' obs <- tibble(
+#'   valid_dttm = det_point_df$valid_dttm,
+#'   SID       = det_point_df$SID,
+#'   units     = "degC",
+#'   T2m       = runif(nrow(det_point_df))
+#' )
+#'
+#' # Make sure the forecast has units
+#' fcst <- set_units(det_point_df, "degC")
+#'
+#' join_to_fcst(fcst, obs)
+#'
+#' # Also works for harp_list objects
+#' join_to_fcst(set_units(det_point_list, "degC"), obs)
+#'
+#' # And works with gridded data
+#' join_to_fcst(set_units(ens_grid_df, "degC"), set_units(anl_grid_df, "degC"))
+join_to_fcst <- function(
+  .fcst,
+  .join,
+  join_type  = c("inner", "left", "right", "full", "semi", "anti"),
+  by         = NULL,
+  latlon     = FALSE,
+  elev       = FALSE,
+  force = FALSE,
+  keep_x     = TRUE,
+  keep_y     = FALSE,
+  ...
+) {
+  UseMethod("join_to_fcst")
+}
 
+#' @export
+join_to_fcst.harp_df <- function(
+  .fcst,
+  .join,
+  join_type  = c("inner", "left", "right", "full", "semi", "anti"),
+  by         = NULL,
+  latlon     = FALSE,
+  elev       = FALSE,
+  force = FALSE,
+  keep_x     = TRUE,
+  keep_y     = FALSE,
+  ...
+) {
+
+  join_type <- match.arg(join_type)
+
+  join_func <- get(paste0(join_type, "_join"), envir = asNamespace("dplyr"))
+
+  # Check for units columns
+  has_fcst_units <- is.element("units", colnames(.fcst))
+  has_join_units <- is.element("units", colnames(.join))
+
+  if (has_fcst_units & has_join_units) {
+
+    do_join <- TRUE
+
+    fcst_units <- unique(.fcst$units)
+    join_units <- unique(.join$units)
+
+    if (length(fcst_units) != 1) {
+      warning(".fcst has more than one units name: ", fcst_units, call. = FALSE, immediate. = TRUE)
+      do_join <- FALSE
+    } else if (length(unique(.fcst$units)) != 1) {
+      warning(".join has more than one units name: ", join_units, call. = FALSE, immediate. = TRUE)
+      do_join <- FALSE
+    } else {
+      if (fcst_units != join_units) {
+        warning(".fcst has units: ", fcst_units, " and .join has units: ", join_units, call. = FALSE, immediate. = TRUE)
+        do_join <- FALSE
+      }
+    }
+
+  } else if (has_fcst_units & !has_join_units) {
+
+    warning(".join does not have a units column. ", call. = FALSE, immediate. = TRUE)
+    do_join <- FALSE
+
+  } else if (!has_fcst_units & has_join_units) {
+
+    warning(".fcst does not have a units column. ", call. = FALSE, immediate. = TRUE)
+    do_join <- FALSE
+
+  } else {
+
+    warning("Neither .fcst nor .join have a units column.", call. = FALSE, immediate. = TRUE)
+    do_join <- TRUE
+
+  }
+
+  if (is.null(by)) {
+    by <- intersect(colnames(.fcst), colnames(.join))
+    if (!latlon) {
+      by <- by[!tolower(by) %in% c("lat", "lon", "latatitude", "longitude", "long")]
+    }
+    if (!elev) {
+      by <- by[!tolower(by) %in% c("elev", "elevation", "altitude")]
+    }
+  }
+
+
+
+  if (!do_join) {
+    if (force) {
+      message("Forcing join without units taken into account.")
+      by <- by[by != "units"]
+    } else {
+      stop(
+        "Join will not be done due to units incompatibility. ",
+        "You can force the join by setting force = TRUE\n",
+        "OR, units imcompatibility can be fixed with the set_units(), ",
+        "or scale_param() functions.",
+        call. = FALSE
+      )
+    }
+  }
+
+  by <- by[!by %in% c("lat", "lon", "elev")]
+  message("Joining, by = c(\"", paste(by, collapse = "\", \""), "\")")
+
+  .fcst <- suppressMessages(join_func(.fcst, .join, by = by, ...))
+
+  if (!keep_x) {
+    .fcst <- dplyr::select(.fcst, -dplyr::matches("\\.x$"))
+  }
+
+  if (!keep_y) {
+    .fcst <- dplyr::select(.fcst, -dplyr::matches("\\.y$"))
+  }
+
+  if (!(keep_x && keep_y)) {
+    .fcst <- dplyr::rename_with(.fcst, ~sub("\\.x$|\\.y$", "", .x))
+  }
+
+  .fcst
+
+}
+
+#' @export
+join_to_fcst.harp_list <- function(
+  .fcst,
+  .join,
+  join_type  = c("inner", "left", "right", "full", "semi", "anti"),
+  by         = NULL,
+  latlon     = FALSE,
+  elev       = FALSE,
+  force      = FALSE,
+  keep_x     = TRUE,
+  keep_y     = FALSE,
+  ...
+) {
+  as_harp_list(lapply(
+    .fcst, join_to_fcst, .join, join_type, by,
+    latlon, elev,
+    force, keep_x, keep_y, ...
+  ))
+}
+
+#' Add or modify a units column
+#'
+#' @param x A data frame or a harp_list.
+#' @param units The units name to put in the units column.
+#'
+#' @return A data frame or harp_list of the same size as x with the units
+#'   column either added or modified.
+#' @export
+#'
+#' @examples
+#' # det_point_df has no units column
+#' det_point_df
+#'
+#' # Set units to "degC"
+#' new_det_point_df <- set_units(det_point_df, "degC")
+#' new_det_point_df
+#'
+#' # Modify the units name to "degrees_C"
+#' set_units(new_det_point_df, "degrees_C")
+set_units <- function(x, units) {
+  UseMethod("set_units")
+}
+
+#' @export
+set_units.data.frame <- function(x, units) {
+  x[["units"]] <- units
+
+  regex <- "_mbr[[:digit:]]{3}|_det$"
+  if (length(grep(regex, colnames(x))) > 0) {
+    return(
+      dplyr::relocate(
+        x, "units", .before = dplyr::matches(regex)
+      )
+    )
+  }
+  x
+}
+
+#' @export
+set_units.harp_list <- function(x, units) {
+  as_harp_list(lapply(x, set_units, units))
+}
+
+#' Scale a parameter in a data frame
+#'
+#' @param x A data frame or a harp_list.
+#' @param scaling The scaling to apply to the data. By default the scaling is
+#'   additive, but if \code{mult = TRUE} it is multiplicative.
+#' @param new_units The name of the new units. If missing, the units name will
+#'   be unchanged.
+#' @param mult Logical. Whether the scaling is multiplicative. The default is
+#'   \code{FALSE}, meaning that the scaling is additive.
+#' @param ... Used by methods.
+#'
+#' @return A data frame or \code{harp_list} with scaled parameter.
+#' @export
+#'
+#' @examples
+#' # Make a data frame of 2m temperature observations in degrees C
+#' library(tibble)
+#' obs <- tibble(
+#'   valid_date = rep(seq_dttm(2022081500, 2022081523), 3),
+#'   SID        = c(rep(1001, 24), rep(1002, 24), rep(1003, 24)),
+#'   units      = "degC",
+#'   T2m        = rnorm(24 * 3, 15, 2)
+#' )
+#'
+#' # Scale to be in Kelvin
+#' scale_param(obs, 273.15, "K", col = T2m)
+#'
+#' # col can be a quoted, or if a variable is must be wrapped in {{}}
+#' scale_param(obs, 273.15, "K", col = "T2m")
+#' prm <- "T2m"
+#' scale_param(obs, 273.15, "K", col = {{prm}})
+#'
+#' # For forecast data frames, col is not needed
+#' scale_param(det_point_df, 273.15, "K")
+#' scale_param(ens_point_df, 273.15, "K")
+#'
+#' # Scaling can be multiplicative
+#' scale_param(det_point_df, 100, "percent", mult = TRUE)
+#' scale_param(ens_point_list, 1/1000, "kg/kg", mult = TRUE)
+scale_param <- function(x, scaling, new_units, mult = FALSE, ...) {
+  UseMethod("scale_param")
+}
+
+#' @param col The name of the column to scale - if \code{x} is a forecast or
+#'   analysis \code{harp_df} data frame or a \code{harp_list}, the columns will
+#'   be selected automatically and \code{col} is ignored.
+#' @rdname scale_param
+#' @export
+scale_param.data.frame <- function(x, scaling, new_units, mult = FALSE, col, ...) {
+  if (missing(col)) {
+    stop("Don't know which column to scale. Set using col.")
+  }
+  col      <- rlang::enquo(col)
+  col_name <- rlang::as_name(col)
+  op  <- `+`
+  if (mult) {
+    op <- `*`
+  }
+
+  x[[col_name]] <- op(x[[col_name]], scaling)
+
+  if (!missing(new_units)) {
+    x[["units"]] <- new_units
+  }
+
+  dplyr::relocate(
+    x,
+    dplyr::any_of("units"),
+    .before = !!col
+  )
+}
+
+#' @export
+scale_param.harp_df <- function(x, scaling, new_units, mult = FALSE, ...) {
+  regex <- "_mbr[[:digit:]]{3}|_det$"
+
+  op  <- `+`
+  if (mult) {
+    op <- `*`
+  }
+  x <- dplyr::mutate(x, dplyr::across(dplyr::matches(regex), ~op(.x, scaling)))
+
+  if (!missing(new_units)) {
+    x[["units"]] <- new_units
+  }
+
+  dplyr::relocate(
+    x,
+    dplyr::any_of("units"),
+    .before = dplyr::matches(regex)
+  )
+}
+
+#' @export
+scale_param.harp_list <- function(x, scaling, new_units, mult = FALSE, ...) {
+  as_harp_list(lapply(x, scale_param, scaling, new_units, mult, ...))
+}

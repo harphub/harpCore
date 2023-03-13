@@ -28,14 +28,14 @@ column name does not end with date the suffixes are pasted onto the
 original column name.
 }
 \examples{
-expand_date(det_point_df, fcdate)
-expand_date(det_point_list, validdate)
-expand_date(ens_point_df, validdate, text_months = TRUE)
+expand_date(det_point_df, fcst_dttm)
+expand_date(det_point_list, valid_dttm)
+expand_date(ens_point_df, valid_dttm, text_months = TRUE)
 
 # Column name can be quoted
-expand_date(ens_grid_df, "fcdate")
+expand_date(ens_grid_df, "fcst_dttm")
 
 # If using a variable, wrap in {{<var>}}
-my_col <- "fcdate"
+my_col <- "fcst_dttm"
 expand_date(ens_grid_df, {{my_col}})
 }

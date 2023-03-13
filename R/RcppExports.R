@@ -13,3 +13,7 @@ cpp_nbhd_smooth <- function(x, rad, threshold, comparator = "ge", includeLow = T
     .Call(`_harpCore_cpp_nbhd_smooth`, x, rad, threshold, comparator, includeLow, includeHigh, boundaryCondition)
 }
 
+cpp_paste0 <- function(x, y) {
+    .Call(`_harpCore_cpp_paste0`, x, y)
+}
+
