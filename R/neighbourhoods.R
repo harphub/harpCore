@@ -183,7 +183,7 @@ nbhd_smooth.geolist <- function(
   as_geolist(
     lapply(
       x,
-      cpp_nbhd_smooth,
+      nbhd_smooth,
       radius,
       threshold,
       comparator,
@@ -277,7 +277,7 @@ cumsum_2d.geolist <- function(
   as_geolist(
     lapply(
       x,
-      cpp_cumsum2d,
+      cumsum2d,
       threshold,
       comparator,
       include_low,
@@ -324,5 +324,5 @@ nbhd_smooth_cumsum.array <- function(
 nbhd_smooth_cumsum.geolist <- function(
     x, radius, boundary = c("zero_pad", "missing")
 ) {
-  as_geolist(lapply(x, cpp_nbhd_smooth_cumsum, radius, boundary))
+  as_geolist(lapply(x, nbhd_smooth_cumsum, radius, boundary))
 }
