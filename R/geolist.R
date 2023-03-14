@@ -172,6 +172,9 @@ Ops.geofield <- function(e1, e2) {
   if (missing(e2)) {
     e2 <- NULL
   }
+  if (is.null(e1) || is.null(e2)) {
+    return(NULL)
+  }
   # If e1 and e2 are geofields - check they are both on the same domain
   if (
     meteogrid::is.geofield(e2) &&
