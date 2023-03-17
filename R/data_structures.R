@@ -93,6 +93,12 @@ as_harp_df.data.frame <- function(x) {
     colnames(x) <- gsub("[[:graph:]]+_anl$", "anl", colnames(x))
     x <- dplyr::relocate(x, dplyr::all_of("anl_model"))
   }
+  if (length(intersect(c("fcst_model", "fcst"), col_names)) == 2) {
+    classes <- c(sub("harp", "harp_det", classes[1]), classes)
+  }
+  if (length(intersect(c("anl_model", "anl"), col_names)) == 2) {
+    classes <- c(sub("harp", "harp_anl", classes[1]), classes)
+  }
 
   structure(x, class = classes)
 
@@ -137,6 +143,24 @@ print.harp_ens_grid_df <- function(x, ...) {
 #' @export
 print.harp_ens_xs_df <- function(x, ...) {
   cat(cli::col_green("::ensemble cross-section forecast:: "))
+  NextMethod()
+}
+
+#' @export
+print.harp_ens_point_df_long <- function(x, ...) {
+  cat(cli::col_green("::ensemble point forecast [[long]]:: "))
+  NextMethod()
+}
+
+#' @export
+print.harp_ens_grid_df_long <- function(x, ...) {
+  cat(cli::col_green("::ensemble gridded forecast [[long]]:: "))
+  NextMethod()
+}
+
+#' @export
+print.harp_ens_xs_df_long <- function(x, ...) {
+  cat(cli::col_green("::ensemble cross-section forecast [[long]]:: "))
   NextMethod()
 }
 

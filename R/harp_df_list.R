@@ -60,13 +60,13 @@ unique_stations <- function(.data) {
 #' @rdname unique_col
 #' @export
 unique_valid_dttm <- function(.data) {
-  unique_col(.data, "valid_dttm")
+  unixtime_to_str_dttm(unique_col(.data, "valid_dttm"))
 }
 
 #' @rdname unique_col
 #' @export
 unique_fcst_dttm <- function(.data) {
-   unique_col(.data, "fcst_dttm")
+  unixtime_to_str_dttm(unique_col(.data, "fcst_dttm"))
 }
 
 #' Select ensemble members
@@ -269,16 +269,9 @@ pivot_to_long <- function(.data) {
   .data <- tidyr::pivot_longer(
     .data,
     dplyr::matches("_mbr[[:digit:]]{3}"),
-    names_to  = "member",
-    values_to = "forecast"
-  )
-  .data[["sub_model"]] <- regmatches(
-    .data[["member"]],
-    regexpr("^[[:graph:]]+(?=_mbr[[:digit:]]{3})", .data[["member"]], perl = TRUE)
-  )
-  .data[["member"]] <- regmatches(
-    .data[["member"]],
-    regexpr("(?<=_)mbr[[:digit:]]{3}[[:graph:]]*$", .data[["member"]], perl = TRUE)
+    names_to  = c("sub_model", "member"),
+    values_to = "forecast",
+    names_sep = "_(?=mbr[[:digit:]]{3})"
   )
   if (is.element("fcst_model", colnames(.data))) {
     .data <- .data[c(
@@ -295,12 +288,9 @@ pivot_to_long <- function(.data) {
 }
 
 pivot_to_wide <- function(.data) {
-  .data[["member"]] <- paste(
-    .data[["sub_model"]], .data[["member"]], sep = "_"
-  )
-  .data <- .data[-grep("sub_model", colnames(.data))]
   tidyr::pivot_wider(
-    .data, names_from = "member", values_from = "forecast"
+    .data, names_from = dplyr::any_of(c("sub_model", "member")),
+    values_from = "forecast", names_sep = "_"
   )
 }
 
@@ -423,7 +413,7 @@ expand_date.harp_list <- function(.data, col, text_months = FALSE) {
 #' # And works with gridded data
 #' join_to_fcst(set_units(ens_grid_df, "degC"), set_units(anl_grid_df, "degC"))
 join_to_fcst <- function(
-  .fcst,
+    .fcst,
   .join,
   join_type  = c("inner", "left", "right", "full", "semi", "anti"),
   by         = NULL,
@@ -439,7 +429,7 @@ join_to_fcst <- function(
 
 #' @export
 join_to_fcst.harp_df <- function(
-  .fcst,
+    .fcst,
   .join,
   join_type  = c("inner", "left", "right", "full", "semi", "anti"),
   by         = NULL,
@@ -546,7 +536,7 @@ join_to_fcst.harp_df <- function(
 
 #' @export
 join_to_fcst.harp_list <- function(
-  .fcst,
+    .fcst,
   .join,
   join_type  = c("inner", "left", "right", "full", "semi", "anti"),
   by         = NULL,
@@ -704,3 +694,232 @@ scale_param.harp_df <- function(x, scaling, new_units, mult = FALSE, ...) {
 scale_param.harp_list <- function(x, scaling, new_units, mult = FALSE, ...) {
   as_harp_list(lapply(x, scale_param, scaling, new_units, mult, ...))
 }
+
+
+#' Decumulate accumulated variables
+#'
+#' @param .data
+#' @param decum_time
+#' @param cols
+#' @param time_col
+#' @param group_col
+#' @param df_name
+#' @export
+decum <- function(.data, decum_time, cols, time_col, group_col, df_name = NULL, ...) {
+  UseMethod("decum")
+}
+
+# Methods set default args, but can still be changed
+#' @export
+decum.harp_det_point_df <- function(
+  .data,
+  decum_time,
+  cols      = dplyr::matches("_det$|^forecast$|^fcst$"),
+  time_col  = "lead_time",
+  group_col = c("fcst_dttm", "SID"),
+  df_name   = NULL,
+  ...
+) {
+  .data <- decum_df(
+    .data, decum_time, {{cols}}, {{time_col}}, {{group_col}}, df_name
+  )
+  as_harp_df(
+    dplyr::filter(
+      .data,
+      dplyr::if_all({{cols}}, ~ !is.na(.x))
+    )
+  )
+}
+
+
+#' @export
+decum.harp_det_grid_df <- function(
+  .data,
+  decum_time,
+  cols      = dplyr::matches("_det$|^forecast$|^fcst$"),
+  time_col  = "lead_time",
+  group_col = "fcst_dttm",
+  df_name   = NULL,
+  ...
+) {
+  .data <- decum_df(
+    .data, decum_time, {{cols}}, {{time_col}}, {{group_col}}, df_name
+  )
+  as_harp_df(
+    dplyr::filter(
+      .data,
+      dplyr::if_all({{cols}}, ~ !vapply(.x, is.null, TRUE))
+    )
+  )
+}
+
+#' @export
+decum.harp_ens_point_df <- function(
+  .data,
+  decum_time,
+  cols      = dplyr::matches("_mbr[[:digit:]]+"),
+  time_col  = "lead_time",
+  group_col = c("fcst_dttm", "SID"),
+  df_name   = NULL,
+  ...
+) {
+  .data <- decum_df(
+    .data, decum_time, {{cols}}, {{time_col}}, {{group_col}}, df_name
+  )
+  as_harp_df(
+    dplyr::filter(
+      .data,
+      dplyr::if_all({{cols}}, ~ !is.na(.x))
+    )
+  )
+}
+
+#' @export
+decum.harp_ens_grid_df <- function(
+  .data,
+  decum_time,
+  cols      = dplyr::matches("_mbr[[:digit:]]+"),
+  time_col  = "lead_time",
+  group_col = "fcst_dttm",
+  df_name   = NULL,
+  ...
+) {
+  .data <- decum_df(
+    .data, decum_time, {{cols}}, {{time_col}}, {{group_col}}, df_name
+  )
+  as_harp_df(
+    dplyr::filter(
+      .data,
+      dplyr::if_all({{cols}}, ~ !vapply(.x, is.null, TRUE))
+    )
+  )
+}
+
+#' @export
+decum.harp_anl_grid_df <- function(
+  .data,
+  decum_time,
+  cols        = dplyr::matches("_anl$|^anl$|^analysis$"),
+  time_col    = "valid_dttm",
+  group_col   = NULL,
+  df_name     = NULL,
+  accum_first = TRUE,
+  ...
+) {
+  # For an analysis, it is more likely that the data are already decumulated,
+  # in which case, everything is accumulated first to make it possible to
+  # get any decumulation time.
+
+  if (accum_first) {
+    .data <- dplyr::mutate(
+      dplyr::arrange(.data, {{time_col}}),
+      dplyr::across({{cols}}, cumsum)
+    )
+  }
+
+  .data <- decum_df(
+    .data, decum_time, {{cols}}, {{time_col}}, {{group_col}}, df_name
+  )
+  as_harp_df(
+    dplyr::filter(
+      .data,
+      dplyr::if_all({{cols}}, ~ !vapply(.x, is.null, TRUE))
+    )
+  )
+}
+
+
+#' @export
+decum.harp_list <- function(
+  .data,
+  decum_time,
+  ...
+) {
+  as_harp_list(
+    mapply(
+      decum,
+      .data    = .data,
+      df_name  = names(.data),
+      MoreArgs = list(decum_time = decum_time, ...),
+      SIMPLIFY = FALSE
+    )
+  )
+}
+
+
+# This function does the work
+decum_df <- function(
+    .data, decum_time, cols = NULL, time_col, group_col, df_name = NULL
+) {
+
+  if (rlang::quo_is_null(rlang::enquo(cols))) {
+    cols <- grep(
+      "_mbr[[:digit:]]+|_det$|_anl$|^forecast$|^fcst$", colnames(.data), value = TRUE
+    )
+    if (length(cols) < 1) {
+      stop("No appropriate columns found to decumulate.", call. = FALSE)
+    }
+  }
+
+  decum_time <- to_seconds(decum_time)
+
+  # Check time_col and add empty times to make everything the same time
+  # resolution if time resolution is not consistent throughout
+  data_times <- dplyr::pull(.data, {{time_col}})
+  if (inherits(data_times, "POSIXct")) {
+    .data[["data_times"]] <- as.numeric(data_times)
+  } else {
+    .data[["data_times"]] <- to_seconds(data_times)
+  }
+  data_times <- sort(unique(.data[["data_times"]]))
+  max_dt     <- ceiling(max(data_times) / decum_time) * decum_time
+  dt_res     <- unique(diff(data_times))
+
+  if (length(dt_res) > 1) {
+    data_times <- seq(min(data_times), max_dt, min(dt_res))
+    if (rlang::quo_is_null(rlang::enquo(group_col))) {
+      df_df <- tibble::tibble(data_times = data_times)
+    } else {
+      dt_df <- dplyr::mutate(
+        dplyr::distinct(dplyr::select(.data, {{group_col}})),
+        data_times = list(data_times)
+      ) %>%
+        tidyr::unnest(dplyr::all_of("data_times"))
+    }
+    .data <- dplyr::full_join(.data, dt_df)
+  }
+
+  dt_res <- unique(diff(sort(unique(.data[["data_times"]]))))
+  if (length(dt_res) > 1) {
+    stop("Something isn't right with the data times.", call. = FALSE)
+  }
+  if (decum_time %% dt_res != 0) {
+    warning(
+      df_name,
+      ": Interval between lead times is not usable for decum_time = ",
+      names(decum_time),
+      call.      = FALSE,
+      immediate. = TRUE
+    )
+    return(.fcst[FALSE, ])
+  }
+  lag_rows <- decum_time / dt_res
+
+  # Group the data by fcdate, order by leadtime and compute the difference
+  decum_func <- function(df, cols, lag) {
+    dplyr::mutate(
+      dplyr::arrange(df, .data[["data_times"]]),
+      dplyr::across({{cols}}, ~.x - dplyr::lag(.x, lag))
+    )
+  }
+
+  dplyr::group_by(.data, dplyr::across({{group_col}})) %>%
+    decum_func({{cols}}, lag_rows) %>%
+    dplyr::ungroup() %>%
+    dplyr::arrange(dplyr::across({{group_col}})) %>%
+    dplyr::select(-dplyr::all_of("data_times"))
+}
+
+
+
+
