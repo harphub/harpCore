@@ -98,6 +98,18 @@ arrange.harp_list <- function(.data, ..., .by_group = FALSE) {
   as_harp_list(lapply(.data, arrange, ..., .by_group))
 }
 
+#' @importFrom dplyr group_by
+#' @export
+group_by.harp_df <- function(.data, ...) {
+  as_harp_df(NextMethod())
+}
+
+#' @importFrom dplyr ungroup
+#' @export
+ungroup.harp_df <- function(.data, ...) {
+  as_harp_df(NextMethod())
+}
+
 #' Extract a single column
 #'
 #' This is the \code{harp_list} method for \code{\link[dplyr]{pull}()}. It
@@ -111,6 +123,33 @@ arrange.harp_list <- function(.data, ..., .by_group = FALSE) {
 pull.harp_list <- function(.data, ...) {
   as_harp_list(lapply(.data, pull, ...))
 }
+
+# harp_df methods
+
+#' @importFrom dplyr group_by
+#' @export
+group_by.harp_df <- function(.data, ...) {
+  as_harp_df(NextMethod())
+}
+
+#' @importFrom dplyr ungroup
+#' @export
+ungroup.harp_df <- function(.data, ...) {
+  as_harp_df(NextMethod())
+}
+
+#' #' @importFrom dplyr dplyr_reconstruct
+#' #' @export
+#' dplyr_reconstruct.harp_df <- function(data, ...) {
+#'   as_harp_df(NextMethod())
+#' }
+#'
+#' #' @importFrom dplyr dplyr_col_modify
+#' #' @export
+#' dplyr_col_modify.harp_df <- function(data, cols) {
+#'   as_harp_df(NextMethod())
+#' }
+#'
 
 #' Bind data frames in a list
 #'

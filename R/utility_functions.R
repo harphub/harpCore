@@ -176,3 +176,16 @@ extract_numeric <- function(x, as_list = FALSE) {
   }
   as.numeric(unlist(x))
 }
+
+#' Pipe operator
+#'
+#' See \code{magrittr::\link[magrittr]{\%>\%}} for details.
+#'
+#' @name %>%
+#' @rdname pipe
+#' @keywords internal
+#' @export
+#' @importFrom magrittr %>%
+#' @importFrom rlang .data
+#' @usage lhs \%>\% rhs
+NULL

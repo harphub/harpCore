@@ -382,6 +382,9 @@ seq_dttm <- function(start_dttm, end_dttm, by = "1h") {
 }
 
 to_seconds <- function(x) {
+  if (is.numeric(x)) {
+    x <- paste0(x, "h")
+  }
   num  <- as.numeric(substr(x, 1, nchar(x) - 1))
   mult <- time_multiplier(substr(x, nchar(x), nchar(x)))
   result <- num * mult
