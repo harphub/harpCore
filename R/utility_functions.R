@@ -189,3 +189,46 @@ extract_numeric <- function(x, as_list = FALSE) {
 #' @importFrom rlang .data
 #' @usage lhs \%>\% rhs
 NULL
+
+#' Decide whether thresholds are absolute or quantiles
+#'
+#' For quantiles, thresholds should be expressed as a character vector with
+#' each element beginning with "q" followed by the quantile expressed as a
+#' value between 0 and 1.
+#'
+#' @param x A numeric or character vector.
+#'
+#' @return A list with a numeric vector of thresholds and a logical indicating
+#'   whether the thresholds are quantiles.
+#' @export
+#'
+#' @examples
+#' parse_thresholds(seq(1, 5))
+#' parse_thresholds(paste0("q", seq(0, 1, 0.2)))
+parse_thresholds <- function(x) {
+  if (is.numeric(x)) {
+    return(list(thresholds = x, quantiles = FALSE))
+  }
+  if (!is.character(x)) {
+    stop(
+      "x must be a numeric vector or a chracter vector with elements ",
+      "beginning with 'q'."
+    )
+  }
+  if (all(!is.na(suppressWarnings(as.numeric(x))))) {
+    return(list(thresholds = x, quantiles = FALSE))
+  }
+  x <- suppressWarnings(as.numeric(sub("^q", "", x)))
+  if (any(is.na(x))) {
+    stop(
+      "x must be a numeric vector or a chracter vector with elements ",
+      "beginning with 'q'."
+    )
+  }
+  if (min(x) < 0 || max(x) > 1) {
+    stop(
+      "For quantile thresholds, the numeric part must be between 0 and 1."
+    )
+  }
+  list(thresholds = x, quantiles = TRUE)
+}
