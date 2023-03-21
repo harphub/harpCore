@@ -9,11 +9,7 @@ cpp_nbhd_smooth_cumsum <- function(indat, rad, boundaryCondition = "zero_pad") {
     .Call(`_harpCore_cpp_nbhd_smooth_cumsum`, indat, rad, boundaryCondition)
 }
 
-cpp_nbhd_smooth <- function(x, rad, threshold, comparator = "ge", includeLow = TRUE, includeHigh = TRUE, boundaryCondition = "zero_pad") {
-    .Call(`_harpCore_cpp_nbhd_smooth`, x, rad, threshold, comparator, includeLow, includeHigh, boundaryCondition)
-}
-
-cpp_paste0 <- function(x, y) {
-    .Call(`_harpCore_cpp_paste0`, x, y)
+cpp_nbhd_smooth <- function(indat, rad, threshold, comparator = "ge", includeLow = TRUE, includeHigh = TRUE, boundaryCondition = "zero_pad") {
+    .Call(`_harpCore_cpp_nbhd_smooth`, indat, rad, threshold, comparator, includeLow, includeHigh, boundaryCondition)
 }
 
