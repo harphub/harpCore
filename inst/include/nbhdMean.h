@@ -1,13 +1,18 @@
+#ifndef harpCore_nbhdMean_H
+#define harpCore_nbhdMean_H
+
+
 #include <Rcpp.h>
 using namespace Rcpp;
 
-// [[Rcpp::export]]
-NumericMatrix cpp_cumsum2d(
-  NumericMatrix indat,
-  NumericVector threshold,
-  String comparator = "ge",
-  bool includeLow = true,
-  bool includeHigh = true
+namespace harpCore{
+
+inline NumericMatrix cpp_cumsum2d(
+    NumericMatrix indat,
+    NumericVector threshold,
+    String comparator = "ge",
+    bool includeLow = true,
+    bool includeHigh = true
 ) {
   int i, j, ni = indat.nrow(), nj = indat.ncol();
   NumericMatrix result(ni, nj);
@@ -121,8 +126,7 @@ NumericMatrix cpp_cumsum2d(
   return result;
 }
 
-// [[Rcpp::export]]
-NumericMatrix cpp_nbhd_smooth_cumsum(NumericMatrix indat, int rad, String boundaryCondition = "zero_pad") {
+inline NumericMatrix cpp_nbhd_smooth_cumsum(NumericMatrix indat, int rad, String boundaryCondition = "zero_pad") {
   int i, j, ni = indat.nrow(), nj = indat.ncol();
   int istart, jstart, iend, jend, imax, jmax;
   NumericMatrix result(ni, nj);
@@ -165,29 +169,20 @@ NumericMatrix cpp_nbhd_smooth_cumsum(NumericMatrix indat, int rad, String bounda
   }
 
   return result;
+
 }
 
-// [[Rcpp::export]]
-NumericMatrix cpp_nbhd_smooth(
-  NumericMatrix x,
-  int rad,
-  NumericVector threshold,
-  String comparator = "ge",
-  bool includeLow = true,
-  bool includeHigh = true,
-  String boundaryCondition = "zero_pad"
+inline NumericMatrix cpp_nbhd_smooth(
+    NumericMatrix x,
+    int rad,
+    NumericVector threshold,
+    String comparator = "ge",
+    bool includeLow = true,
+    bool includeHigh = true,
+    String boundaryCondition = "zero_pad"
 ) {
   return cpp_nbhd_smooth_cumsum(cpp_cumsum2d(x, threshold, comparator, includeLow, includeHigh), rad, boundaryCondition);
 }
-
-// [[Rcpp::export]]
-CharacterVector cpp_paste0(std::vector<std::string> x, std::vector<std::string> y) {
-  int len = x.size();
-  CharacterVector result(len);
-  for (int i = 0; i < len; i++) {
-    result[i] = x[i] + y[i];
-  }
-  return result;
 }
 
-
+#endif
