@@ -3,6 +3,7 @@
 
 
 #include <Rcpp.h>
+#include "cumsumComparators.h"
 using namespace Rcpp;
 
 namespace harpCore{
@@ -26,99 +27,31 @@ inline NumericMatrix cpp_cumsum2d(
       }
     }
 
-    for (i = 0; i < ni; i++) {
-      for (j = 1; j < ni; j++) {
+    for (j = 1; j < nj; j++) {
+      for (i = 0; i < ni; i++) {
         result(i, j) += result(i, j - 1);
       }
     }
 
   } else {
 
-    for (j = 0; j < nj; j++) {
-
-      if (comparator == "ge") {
-        result(0, j) = (indat(0, j) >= threshold[0]);
-      } else if (comparator == "gt") {
-        result(0, j) = (indat(0, j) > threshold[0]);
-      } else if (comparator == "le") {
-        result(0, j) = (indat(0, j) <= threshold[0]);
-      } else if (comparator == "lt") {
-        result(0, j) = (indat(0, j) < threshold[0]);
-      } else if (comparator == "between") {
-        if (includeLow && includeHigh) {
-          result(0, j) = (indat(0, j) >= threshold[0] && indat(0, j) <= threshold[1]);
-        }
-        if (includeLow && !includeHigh) {
-          result(0, j) = (indat(0, j) >= threshold[0] && indat(0, j) < threshold[1]);
-        }
-        if (!includeLow && includeHigh) {
-          result(0, j) = (indat(0, j) > threshold[0] && indat(0, j) <= threshold[1]);
-        }
-        if (!includeLow && !includeHigh) {
-          result(0, j) = (indat(0, j) > threshold[0] && indat(0, j) < threshold[1]);
-        }
-      } else if (comparator == "outside") {
-        if (includeLow && includeHigh) {
-          result(0, j) = (indat(0, j) <= threshold[0] || indat(0, j) >= threshold[1]);
-        }
-        if (includeLow && !includeHigh) {
-          result(0, j) = (indat(0, j) <= threshold[0] || indat(0, j) > threshold[1]);
-        }
-        if (!includeLow && includeHigh) {
-          result(0, j) = (indat(0, j) < threshold[0] || indat(0, j) >= threshold[1]);
-        }
-        if (!includeLow && !includeHigh) {
-          result(0, j) = (indat(0, j) < threshold[0] || indat(0, j) > threshold[1]);
-        }
-      }
-
-      for (i = 1; i < ni; i++) {
-        if (comparator == "ge") {
-          result(i, j) = (indat(i, j) >= threshold[0]) + result(i - 1, j);
-        }
-        if (comparator == "gt") {
-          result(i, j) = (indat(i, j) > threshold[0]) + result(i - 1, j);
-        }
-        if (comparator == "le") {
-          result(i, j) = (indat(i, j) <= threshold[0]) + result(i - 1, j);
-        }
-        if (comparator == "lt") {
-          result(i, j) = (indat(i, j) < threshold[0]) + result(i - 1, j);
-        } else if (comparator == "between") {
-          if (includeLow && includeHigh) {
-            result(i, j) = (indat(i, j) >= threshold[0] && indat(i, j) <= threshold[1]) + result(i - 1, j);
-          }
-          if (includeLow && !includeHigh) {
-            result(i, j) = (indat(i, j) >= threshold[0] && indat(i, j) < threshold[1]) + result(i - 1, j);
-          }
-          if (!includeLow && includeHigh) {
-            result(i, j) = (indat(i, j) > threshold[0] && indat(i, j) <= threshold[1]) + result(i - 1, j);
-          }
-          if (!includeLow && !includeHigh) {
-            result(i, j) = (indat(i, j) > threshold[0] && indat(i, j) < threshold[1]) + result(i - 1, j);
-          }
-        } else if (comparator == "outside") {
-          if (includeLow && includeHigh) {
-            result(i, j) = (indat(i, j) <= threshold[0] || indat(i, j) >= threshold[1]) + result(i - 1, j);
-          }
-          if (includeLow && !includeHigh) {
-            result(i, j) = (indat(i, j) <= threshold[0] || indat(i, j) > threshold[1]) + result(i - 1, j);
-          }
-          if (!includeLow && includeHigh) {
-            result(i, j) = (indat(i, j) < threshold[0] || indat(i, j) >= threshold[1]) + result(i - 1, j);
-          }
-          if (!includeLow && !includeHigh) {
-            result(i, j) = (indat(i, j) < threshold[0] || indat(i, j) > threshold[1]) + result(i - 1, j);
-          }
-        }
-      }
-
+    if (comparator == "ge") {
+      result = cumsumGreaterThanEqual(indat, threshold, ni, nj);
     }
-
-    for (i = 0; i < ni; i++) {
-      for (j = 1; j < nj; j++) {
-        result(i, j) += result(i, j - 1);
-      }
+    if (comparator == "gt") {
+      result = cumsumGreaterThan(indat, threshold, ni, nj);
+    }
+    if (comparator == "le") {
+      result = cumsumLessThanEqual(indat, threshold, ni, nj);
+    }
+    if (comparator == "lt") {
+      result = cumsumLessThan(indat, threshold, ni, nj);
+    }
+    if (comparator == "between") {
+      result = cumsumBetween(indat, threshold, ni, nj, includeLow, includeHigh);
+    }
+    if (comparator == "outside") {
+      result = cumsumBetween(indat, threshold, ni, nj, includeLow, includeHigh);
     }
 
   }
@@ -148,20 +81,20 @@ inline NumericMatrix cpp_nbhd_smooth_cumsum(NumericMatrix indat, int rad, String
     jend = nj - rad;
   }
 
-  for (i = istart; i < iend; i++) {
-    imax = std::min(i + rad, ni - 1) ;
-    for(j = jstart; j < jend; j++) {
+  for (j = jstart; j < jend; j++) {
+    jmax = std::min(j + rad, nj - 1) ;
+    for(i = istart; i < iend; i++) {
 
-      jmax = std::min(j + rad, nj - 1) ;
+      imax = std::min(i + rad, ni - 1) ;
       result(i, j) = indat(imax, jmax) ;
 
-      if (i > rad) {
-        result(i, j) -= indat(i - rad - 1, jmax);
-        if (j > rad) {
-          result(i, j) += indat(i - rad - 1, j - rad - 1) - indat(imax, j - rad - 1);
-        }
-      } else if (j > rad) {
+      if (j > rad) {
         result(i, j) -= indat(imax, j - rad - 1);
+        if (i > rad) {
+          result(i, j) += indat(i - rad - 1, j - rad - 1) - indat(i - rad - 1, jmax);
+        }
+      } else if (i > rad) {
+        result(i, j) -= indat(i - rad - 1, jmax);
       }
 
       result(i, j) /= ((rad * 2 + 1) * (rad * 2 + 1));
