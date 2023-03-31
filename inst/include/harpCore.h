@@ -4,5 +4,6 @@
 #include <Rcpp.h>
 #include "nbhdMean.h"
 #include "cumsumComparators.h"
+#include "geolistMath.h"
 
 #endif

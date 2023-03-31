@@ -13,3 +13,27 @@ cpp_nbhd_smooth <- function(indat, rad, threshold, comparator = "ge", includeLow
     .Call(`_harpCore_cpp_nbhd_smooth`, indat, rad, threshold, comparator, includeLow, includeHigh, boundaryCondition)
 }
 
+cpp_geolist_mean <- function(geolist, na_rm = FALSE) {
+    .Call(`_harpCore_cpp_geolist_mean`, geolist, na_rm)
+}
+
+cpp_geolist_sum <- function(geolist, na_rm = FALSE) {
+    .Call(`_harpCore_cpp_geolist_sum`, geolist, na_rm)
+}
+
+cpp_geolist_prod <- function(geolist, na_rm = FALSE) {
+    .Call(`_harpCore_cpp_geolist_prod`, geolist, na_rm)
+}
+
+cpp_geolist_min <- function(geolist, na_rm = FALSE) {
+    .Call(`_harpCore_cpp_geolist_min`, geolist, na_rm)
+}
+
+cpp_geolist_max <- function(geolist, na_rm = FALSE) {
+    .Call(`_harpCore_cpp_geolist_max`, geolist, na_rm)
+}
+
+cpp_geolist_var_sd <- function(geolist, na_rm = FALSE, var = TRUE) {
+    .Call(`_harpCore_cpp_geolist_var_sd`, geolist, na_rm, var)
+}
+

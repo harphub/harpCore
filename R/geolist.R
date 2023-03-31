@@ -58,7 +58,7 @@ get_geodomain <- function(x) {
 check_domains <- function(x, y) {
   if (
     (meteogrid::is.geodomain(x) || meteogrid::is.geofield(x)) &&
-    (meteogrid::is.geodomain(y) || meteogrid::is.geofield(y))
+      (meteogrid::is.geodomain(y) || meteogrid::is.geofield(y))
   ) {
     return(
       meteogrid::compare.geodomain(
@@ -259,24 +259,16 @@ Ops.geolist <- function(e1, e2) {
 #' @export
 Summary.geolist <- function(x, na.rm = FALSE, ...) {
 
-  if (.Generic %in% c("sum", "prod")) {
-    fun <- function(x, y, na.rm) {
-      if (na.rm) {
-        if (.Generic == "sum") {
-          x[is.na(x)] <- 0
-          y[is.na(y)] <- 0
-        } else {
-          x[is.na(x)] <- 1
-          y[is.na(y)] <- 1
-        }
-      }
-      op  <- switch(.Generic, "sum" = `+`, `*`)
-      op(x, y)
-    }
-  }
-
-  if (.Generic %in% c("min", "max")) {
-    fun <- switch(.Generic, min = pmin, pmax)
+  dom <- meteogrid::as.geodomain(x[[1]])
+  if (.Generic %in% c("sum", "prod", "min", "max")) {
+    op  <- switch(
+      .Generic,
+      "sum"  = cpp_geolist_sum,
+      "prod" = cpp_geolist_prod,
+      "min"  = cpp_geolist_min,
+      "max"  = cpp_geolist_max
+    )
+    return(meteogrid::as.geofield(op(x, na.rm), domain = dom))
   }
 
   if (.Generic %in% c("all", "any")) {
@@ -323,10 +315,8 @@ is.na.geolist <- function(x) {
 
 #' @export
 mean.geolist <- function(x, na.rm = FALSE, ...) {
-  if (na.rm) {
-    return(sum(x, na.rm = TRUE) / sum(!is.na(x)))
-  }
-  sum(x, na.rm = FALSE) / length(x)
+  dom <- meteogrid::as.geodomain(x[[1]])
+  meteogrid::as.geofield(cpp_geolist_mean(x, na.rm), domain = dom)
 }
 
 # Base R var and sd are not methods so make new functions
@@ -358,16 +348,8 @@ variance.default <- function(x, na.rm = FALSE, ...) {
 
 #' @export
 variance.geolist <- function(x, na.rm = FALSE, ...) {
-  x_bar <- mean(x, na.rm = na.rm)
-
-  x <- as_geolist(
-    lapply(x, function(y) (y - x_bar) ^ 2)
-  )
-
-  if (na.rm) {
-    return(sum(x, na.rm = TRUE) / (sum(!is.na(x)) - 1))
-  }
-  sum(x, na.rm = FALSE) / (length(x) - 1)
+  dom <- meteogrid::as.geodomain(x[[1]])
+  meteogrid::as.geofield(cpp_geolist_var_sd(x, na.rm), domain = dom)
 }
 
 #' @rdname variance
@@ -383,7 +365,8 @@ std_dev.default <- function(x, na.rm = FALSE, ...) {
 
 #' @export
 std_dev.geolist <- function(x, na.rm = FALSE, ...) {
-  sqrt(variance(x, na.rm = na.rm))
+  dom <- meteogrid::as.geodomain(x[[1]])
+  meteogrid::as.geofield(cpp_geolist_var_sd(x, na.rm, FALSE), domain = dom)
 }
 
 #' @export
