@@ -30,6 +30,34 @@ NumericMatrix cpp_nbhd_smooth(
   return harpCore::cpp_nbhd_smooth(indat, rad, threshold, comparator, includeLow, includeHigh, boundaryCondition);
 }
 
+// [[Rcpp::export]]
+NumericMatrix cpp_geolist_mean(List geolist, bool na_rm = false) {
+  return harpCore::cpp_geolist_mean(geolist, na_rm);
+}
 
+// [[Rcpp::export]]
+NumericMatrix cpp_geolist_sum(List geolist, bool na_rm = false) {
+  return harpCore::cpp_geolist_sum(geolist, na_rm);
+}
+
+// [[Rcpp::export]]
+NumericMatrix cpp_geolist_prod(List geolist, bool na_rm = false) {
+  return harpCore::cpp_geolist_prod(geolist, na_rm);
+}
+
+// [[Rcpp::export]]
+NumericMatrix cpp_geolist_min(List geolist, bool na_rm = false) {
+  return harpCore::cpp_geolist_min(geolist, na_rm);
+}
+
+// [[Rcpp::export]]
+NumericMatrix cpp_geolist_max(List geolist, bool na_rm = false) {
+  return harpCore::cpp_geolist_max(geolist, na_rm);
+}
+
+// [[Rcpp::export]]
+NumericMatrix cpp_geolist_var_sd(List geolist, bool na_rm = false, bool var = true) {
+  return harpCore::cpp_geolist_var_sd(geolist, na_rm, var);
+}
 
 

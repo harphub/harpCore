@@ -56,11 +56,90 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_geolist_mean
+NumericMatrix cpp_geolist_mean(List geolist, bool na_rm);
+RcppExport SEXP _harpCore_cpp_geolist_mean(SEXP geolistSEXP, SEXP na_rmSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type geolist(geolistSEXP);
+    Rcpp::traits::input_parameter< bool >::type na_rm(na_rmSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_geolist_mean(geolist, na_rm));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_geolist_sum
+NumericMatrix cpp_geolist_sum(List geolist, bool na_rm);
+RcppExport SEXP _harpCore_cpp_geolist_sum(SEXP geolistSEXP, SEXP na_rmSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type geolist(geolistSEXP);
+    Rcpp::traits::input_parameter< bool >::type na_rm(na_rmSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_geolist_sum(geolist, na_rm));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_geolist_prod
+NumericMatrix cpp_geolist_prod(List geolist, bool na_rm);
+RcppExport SEXP _harpCore_cpp_geolist_prod(SEXP geolistSEXP, SEXP na_rmSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type geolist(geolistSEXP);
+    Rcpp::traits::input_parameter< bool >::type na_rm(na_rmSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_geolist_prod(geolist, na_rm));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_geolist_min
+NumericMatrix cpp_geolist_min(List geolist, bool na_rm);
+RcppExport SEXP _harpCore_cpp_geolist_min(SEXP geolistSEXP, SEXP na_rmSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type geolist(geolistSEXP);
+    Rcpp::traits::input_parameter< bool >::type na_rm(na_rmSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_geolist_min(geolist, na_rm));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_geolist_max
+NumericMatrix cpp_geolist_max(List geolist, bool na_rm);
+RcppExport SEXP _harpCore_cpp_geolist_max(SEXP geolistSEXP, SEXP na_rmSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type geolist(geolistSEXP);
+    Rcpp::traits::input_parameter< bool >::type na_rm(na_rmSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_geolist_max(geolist, na_rm));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_geolist_var_sd
+NumericMatrix cpp_geolist_var_sd(List geolist, bool na_rm, bool var);
+RcppExport SEXP _harpCore_cpp_geolist_var_sd(SEXP geolistSEXP, SEXP na_rmSEXP, SEXP varSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type geolist(geolistSEXP);
+    Rcpp::traits::input_parameter< bool >::type na_rm(na_rmSEXP);
+    Rcpp::traits::input_parameter< bool >::type var(varSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_geolist_var_sd(geolist, na_rm, var));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_harpCore_cpp_cumsum2d", (DL_FUNC) &_harpCore_cpp_cumsum2d, 5},
     {"_harpCore_cpp_nbhd_smooth_cumsum", (DL_FUNC) &_harpCore_cpp_nbhd_smooth_cumsum, 3},
     {"_harpCore_cpp_nbhd_smooth", (DL_FUNC) &_harpCore_cpp_nbhd_smooth, 7},
+    {"_harpCore_cpp_geolist_mean", (DL_FUNC) &_harpCore_cpp_geolist_mean, 2},
+    {"_harpCore_cpp_geolist_sum", (DL_FUNC) &_harpCore_cpp_geolist_sum, 2},
+    {"_harpCore_cpp_geolist_prod", (DL_FUNC) &_harpCore_cpp_geolist_prod, 2},
+    {"_harpCore_cpp_geolist_min", (DL_FUNC) &_harpCore_cpp_geolist_min, 2},
+    {"_harpCore_cpp_geolist_max", (DL_FUNC) &_harpCore_cpp_geolist_max, 2},
+    {"_harpCore_cpp_geolist_var_sd", (DL_FUNC) &_harpCore_cpp_geolist_var_sd, 3},
     {NULL, NULL, 0}
 };
 
