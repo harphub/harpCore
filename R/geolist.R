@@ -326,7 +326,7 @@ mean.geolist <- function(x, na.rm = FALSE, ...) {
 #' \code{\link[stats]{sd}} and \code{\link[stats]{var}} are not implemented
 #'   as methods, which means thet cannot be dispatched for geolists. \code{variance}
 #'   and \code{std_dev} are implemented as methods and can be used to compute
-#'   the standard deviation and variance of goelists in a pointwise manner.
+#'   the standard deviation and variance of geolists in a pointwise manner.
 #'   If the input is not a geolist the default functions \code{\link[stats]{sd}} and
 #'   \code{\link[stats]{var}} are used.
 #' @param x a geolist, numeric vector, matrix or data frame.
