@@ -118,7 +118,7 @@ psub <- function(x, pattern, replacement, exact = TRUE, ...) {
         gsub_pattern <- paste0(gsub_pattern, "$")
       }
     }
-    if (!any(grepl(gsub_pattern, x))) {
+    if (!any(grepl(gsub_pattern, x, ...))) {
       warning("\"", pattern[i], "\" not found in `x`.")
     }
     x <- gsub(gsub_pattern, replacement[i], x, ...)
