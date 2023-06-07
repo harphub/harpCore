@@ -56,6 +56,16 @@ NumericMatrix cpp_geolist_max(List geolist, bool na_rm = false) {
 }
 
 // [[Rcpp::export]]
+LogicalMatrix cpp_geolist_any(List geolist, bool na_rm = false) {
+  return harpCore::cpp_geolist_any(geolist, na_rm);
+}
+
+// [[Rcpp::export]]
+LogicalMatrix cpp_geolist_all(List geolist, bool na_rm = false) {
+  return harpCore::cpp_geolist_all(geolist, na_rm);
+}
+
+// [[Rcpp::export]]
 NumericMatrix cpp_geolist_var_sd(List geolist, bool na_rm = false, bool var = true) {
   return harpCore::cpp_geolist_var_sd(geolist, na_rm, var);
 }

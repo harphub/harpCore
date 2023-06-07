@@ -33,6 +33,14 @@ cpp_geolist_max <- function(geolist, na_rm = FALSE) {
     .Call(`_harpCore_cpp_geolist_max`, geolist, na_rm)
 }
 
+cpp_geolist_any <- function(geolist, na_rm = FALSE) {
+    .Call(`_harpCore_cpp_geolist_any`, geolist, na_rm)
+}
+
+cpp_geolist_all <- function(geolist, na_rm = FALSE) {
+    .Call(`_harpCore_cpp_geolist_all`, geolist, na_rm)
+}
+
 cpp_geolist_var_sd <- function(geolist, na_rm = FALSE, var = TRUE) {
     .Call(`_harpCore_cpp_geolist_var_sd`, geolist, na_rm, var)
 }

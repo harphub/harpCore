@@ -183,6 +183,76 @@ inline NumericMatrix cpp_geolist_max(List geolist, bool na_rm = false) {
   return result;
 }
 
+inline LogicalMatrix cpp_geolist_any(List geolist, bool na_rm = false) {
+  int i, j, k, ni, nj, nk = geolist.size();
+  LogicalMatrix result = geolist[0];
+  ni = result.nrow();
+  nj = result.ncol();
+
+  if (na_rm) {
+    for (k = 1; k < nk; k++) {
+      LogicalMatrix geofield = geolist[k];
+      for (j = 0; j < nj; j++) {
+        for (i = 0; i < ni; i++) {
+          result(i, j) = LogicalVector::is_na(result(i, j))
+          ? geofield(i, j)
+            : LogicalVector::is_na(geofield(i, j))
+          ? result(i, j)
+            : result(i, j) || geofield(i, j);
+        }
+      }
+    }
+  } else {
+    for (k = 1; k < nk; k++) {
+      LogicalMatrix geofield = geolist[k];
+      for (j = 0; j < nj; j++) {
+        for (i = 0; i < ni; i++) {
+          result(i, j) = LogicalVector::is_na(result(i, j)) || LogicalVector::is_na(geofield(i, j))
+          ? NA_LOGICAL
+          : result(i, j) || geofield(i, j);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+inline LogicalMatrix cpp_geolist_all(List geolist, bool na_rm = false) {
+  int i, j, k, ni, nj, nk = geolist.size();
+  LogicalMatrix result = geolist[0];
+  ni = result.nrow();
+  nj = result.ncol();
+
+  if (na_rm) {
+    for (k = 1; k < nk; k++) {
+      LogicalMatrix geofield = geolist[k];
+      for (j = 0; j < nj; j++) {
+        for (i = 0; i < ni; i++) {
+          result(i, j) = LogicalVector::is_na(result(i, j))
+          ? geofield(i, j)
+            : LogicalVector::is_na(geofield(i, j))
+          ? result(i, j)
+            : result(i, j) && geofield(i, j);
+        }
+      }
+    }
+  } else {
+    for (k = 1; k < nk; k++) {
+      LogicalMatrix geofield = geolist[k];
+      for (j = 0; j < nj; j++) {
+        for (i = 0; i < ni; i++) {
+          result(i, j) = LogicalVector::is_na(result(i, j)) || LogicalVector::is_na(geofield(i, j))
+          ? NA_LOGICAL
+          : result(i, j) && geofield(i, j);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 inline NumericMatrix cpp_geolist_var_sd(List geolist, bool na_rm = false, bool var = true) {
   int i, j, k, ni, nj, nk = geolist.size();
   NumericMatrix mean = cpp_geolist_mean(geolist, na_rm);

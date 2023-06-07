@@ -16,11 +16,14 @@ Config/testthat/edition: 3
 Imports: 
     cli,
     dplyr,
+    magrittr,
     meteogrid,
+    pillar,
     Rcpp,
     rlang,
     tibble,
-    tidyr
+    tidyr,
+    vctrs
 Remotes:
     harphub/meteogrid
 Depends: 

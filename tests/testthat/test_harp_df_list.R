@@ -65,7 +65,7 @@ test_that("pivot_members returns the correct data frame", {
         valid_dttm = rep(sort(ens_point_df$valid_dttm), 2),
         SID = sort(rep(ens_point_df$SID, 2)),
         member = rep(c("mbr000", "mbr001"), nrow(ens_point_df)),
-        forecast = unlist(lapply(
+        fcst = unlist(lapply(
           1:nrow(ens_point_df),
           function(i) c(ens_point_df$point_mbr000[i], ens_point_df$point_mbr001[i])
         ))
@@ -82,7 +82,7 @@ test_that("pivot_members returns the correct data frame", {
         lead_time = sort(rep(ens_grid_df$lead_time, 2)),
         valid_dttm = sort(rep(ens_grid_df$valid_dttm, 2)),
         member = rep(c("mbr000", "mbr001"), nrow(ens_grid_df)),
-        forecast = Reduce(c, lapply(
+        fcst = Reduce(c, lapply(
           1:nrow(ens_grid_df),
           function(i) c(ens_grid_df$grid_mbr000[i], ens_grid_df$grid_mbr001[i])
         ))
@@ -107,7 +107,7 @@ test_that("expand_date expands the date correctly", {
         lead_time = det_point_df$lead_time,
         valid_dttm = det_point_df$valid_dttm,
         SID = det_point_df$SID,
-        point_det = det_point_df$point_det,
+        fcst = det_point_df$fcst,
         valid_year = 2021L,
         valid_month = 1L,
         valid_day = 1L,
@@ -143,7 +143,7 @@ test_that("expand_date expands the date correctly", {
         fcst_dttm = det_grid_df$fcst_dttm,
         lead_time = det_grid_df$lead_time,
         valid_dttm = det_grid_df$valid_dttm,
-        grid_det = det_grid_df$grid_det,
+        fcst = det_grid_df$fcst,
         fcst_year = 2021L,
         fcst_month = "Jan",
         fcst_day = 1L,
@@ -163,7 +163,7 @@ test_that("expand_date expands the date correctly", {
             lead_time = det_point_list[[1]]$lead_time,
             valid_dttm = det_point_list[[1]]$valid_dttm,
             SID = det_point_list[[1]]$SID,
-            point_det = det_point_list[[1]]$point_det,
+            fcst = det_point_list[[1]]$fcst,
             valid_year = 2021L,
             valid_month = 1L,
             valid_day = 1L,
@@ -178,7 +178,7 @@ test_that("expand_date expands the date correctly", {
             lead_time = det_point_list[[2]]$lead_time,
             valid_dttm = det_point_list[[2]]$valid_dttm,
             SID = det_point_list[[2]]$SID,
-            point_det = det_point_list[[2]]$point_det,
+            fcst = det_point_list[[2]]$fcst,
             valid_year = 2021L,
             valid_month = 1L,
             valid_day = 1L,

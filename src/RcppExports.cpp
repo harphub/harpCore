@@ -116,6 +116,30 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// cpp_geolist_any
+LogicalMatrix cpp_geolist_any(List geolist, bool na_rm);
+RcppExport SEXP _harpCore_cpp_geolist_any(SEXP geolistSEXP, SEXP na_rmSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type geolist(geolistSEXP);
+    Rcpp::traits::input_parameter< bool >::type na_rm(na_rmSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_geolist_any(geolist, na_rm));
+    return rcpp_result_gen;
+END_RCPP
+}
+// cpp_geolist_all
+LogicalMatrix cpp_geolist_all(List geolist, bool na_rm);
+RcppExport SEXP _harpCore_cpp_geolist_all(SEXP geolistSEXP, SEXP na_rmSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type geolist(geolistSEXP);
+    Rcpp::traits::input_parameter< bool >::type na_rm(na_rmSEXP);
+    rcpp_result_gen = Rcpp::wrap(cpp_geolist_all(geolist, na_rm));
+    return rcpp_result_gen;
+END_RCPP
+}
 // cpp_geolist_var_sd
 NumericMatrix cpp_geolist_var_sd(List geolist, bool na_rm, bool var);
 RcppExport SEXP _harpCore_cpp_geolist_var_sd(SEXP geolistSEXP, SEXP na_rmSEXP, SEXP varSEXP) {
@@ -139,6 +163,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_harpCore_cpp_geolist_prod", (DL_FUNC) &_harpCore_cpp_geolist_prod, 2},
     {"_harpCore_cpp_geolist_min", (DL_FUNC) &_harpCore_cpp_geolist_min, 2},
     {"_harpCore_cpp_geolist_max", (DL_FUNC) &_harpCore_cpp_geolist_max, 2},
+    {"_harpCore_cpp_geolist_any", (DL_FUNC) &_harpCore_cpp_geolist_any, 2},
+    {"_harpCore_cpp_geolist_all", (DL_FUNC) &_harpCore_cpp_geolist_all, 2},
     {"_harpCore_cpp_geolist_var_sd", (DL_FUNC) &_harpCore_cpp_geolist_var_sd, 3},
     {NULL, NULL, 0}
 };

@@ -41,11 +41,13 @@ as_geolist <- function(...) {
     stop("All geofields must be on the same domain.")
   }
 
-  structure(
-    x,
-    class = c("geolist", class(x)),
-    domain = get_geodomain(x)
-  )
+  structure(x, domain = get_domain(x), class = c("geolist", "list"))
+
+  # vctrs::new_vctr(
+  #   x,
+  #   class = "geolist",
+  #   domain = get_geodomain(x)
+  # )
 }
 
 get_geodomain <- function(x) {
@@ -55,6 +57,8 @@ get_geodomain <- function(x) {
   }
   meteogrid::as.geodomain(x[[1]])
 }
+
+
 check_domains <- function(x, y) {
   if (
     (meteogrid::is.geodomain(x) || meteogrid::is.geofield(x)) &&
@@ -121,7 +125,21 @@ print.geolist <- function(x, ...) {
 
 #' @export
 c.geolist <- function(...) {
-  as_geolist(NextMethod())
+  x <- list(...)
+  if (length(x) < 2) {
+    return(x[[1]])
+  }
+  non_nulls <- which(sapply(x, function(.x) !is.null(.x)))
+  doms <- lapply(x[non_nulls], attr, "domain")
+  same_doms <- sapply(
+    2:length(doms),
+    function(i) check_domains(doms[[i]], doms[[(i - 1)]])
+  )
+  if (!all(same_doms)) {
+    stop("All geolists must have the same domain.")
+  }
+  x <- lapply(x, function(.x) {attributes(.x) <- NULL; .x})
+  as_geolist(Reduce(c, x))
 }
 
 ###

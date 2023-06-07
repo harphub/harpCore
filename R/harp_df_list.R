@@ -270,7 +270,7 @@ pivot_to_long <- function(.data) {
     .data,
     dplyr::matches("_mbr[[:digit:]]{3}"),
     names_to  = c("sub_model", "member"),
-    values_to = "forecast",
+    values_to = "fcst",
     names_sep = "_(?=mbr[[:digit:]]{3})"
   )
   if (is.element("fcst_model", colnames(.data))) {
@@ -290,7 +290,7 @@ pivot_to_long <- function(.data) {
 pivot_to_wide <- function(.data) {
   tidyr::pivot_wider(
     .data, names_from = dplyr::any_of(c("sub_model", "member")),
-    values_from = "forecast", names_sep = "_"
+    values_from = "fcst", names_sep = "_"
   )
 }
 
