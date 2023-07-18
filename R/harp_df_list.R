@@ -921,5 +921,268 @@ decum_df <- function(
 }
 
 
+#' Title
+#'
+#' @param .fcst
+#' @param mean
+#' @param sd
+#' @param var
+#' @param min
+#' @param max
+#' @param keep_members
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ens_stats <- function(
+  .fcst,
+  mean         = TRUE,
+  sd           = TRUE,
+  var          = FALSE,
+  min          = FALSE,
+  max          = FALSE,
+  keep_members = FALSE,
+  ...
+) {
+  UseMethod("ens_stats")
+}
 
+#' @export
+ens_stats.harp_ens_grid_df <- function(
+  .fcst,
+  mean         = TRUE,
+  sd           = TRUE,
+  var          = FALSE,
+  min          = FALSE,
+  max          = FALSE,
+  keep_members = FALSE,
+  ...
+) {
 
+  stats <- c(mean, sd, var, min, max)
+  names(stats) <- c("mean", "sd", "var", "min", "max")
+
+  if (!any(stats)) {
+    return(.fcst)
+  }
+
+  saved_class <- class(.fcst)
+
+  res <- pivot_members(.fcst)
+
+  group_cols <- colnames(res)[!colnames(res) %in% c("member", "fcst")]
+
+  res <- dplyr::group_by(res, !!!rlang::syms(group_cols))
+
+  res <- dplyr::summarise(
+    res,
+    ens_mean = if (stats[["mean"]]) mean(.data[["fcst"]]) else NA,
+    ens_sd   = if (stats[["sd"]]) std_dev(.data[["fcst"]]) else NA,
+    ens_var  = if (stats[["var"]]) variance(.data[["fcst"]]) else NA,
+    ens_min  = if (stats[["min"]]) min(.data[["fcst"]]) else NA,
+    ens_max  = if (stats[["max"]]) max(.data[["fcst"]]) else NA,
+    .groups = "drop"
+  )
+
+  res <- dplyr::select(
+    res,
+    dplyr::all_of(group_cols),
+    dplyr::all_of(paste0("ens_", names(stats))[stats])
+  )
+
+  if (length(unique(res[["sub_model"]])) < 2) {
+    res <- dplyr::select(res, -dplyr::all_of("sub_model"))
+  }
+
+  if (keep_members) {
+    return(suppressMessages(dplyr::inner_join(.fcst, res)))
+  }
+
+  structure(
+    res,
+    class = grep("harp_ens_grid_df", saved_class, value = TRUE, invert = TRUE)
+  )
+
+}
+
+#' @export
+ens_stats.harp_ens_point_df <- function(
+    .fcst,
+    mean         = TRUE,
+    sd           = TRUE,
+    var          = FALSE,
+    min          = FALSE,
+    max          = FALSE,
+    median       = FALSE,
+    keep_members = FALSE,
+    ...
+) {
+
+  stats <- c(mean, sd, var, min, max, median)
+  names(stats) <- c("mean", "sd", "var", "min", "max", "median")
+
+  if (!any(stats)) {
+    return(.fcst)
+  }
+
+  all_cols    <- colnames(.fcst)
+  member_cols <- grep("_mbr[[:digit:]]{3}", all_cols)
+
+  res <- dplyr::mutate(
+    .fcst,
+    ens_mean = if (stats[["mean"]]) rowMeans(dplyr::pick(member_cols)) else NA,
+    ens_sd   = if (stats[["sd"]]) {
+      matrixStats::rowSds(as.matrix(dplyr::pick(member_cols)))
+    } else {
+      NA
+    },
+    ens_var = if (stats[["var"]]) {
+      matrixStats::rowVars(as.matrix(dplyr::pick(member_cols)))
+    } else {
+      NA
+    },
+    ens_min = if (stats[["min"]]) {
+      matrixStats::rowMins(as.matrix(dplyr::pick(member_cols)))
+    } else {
+      NA
+    },
+    ens_max = if (stats[["max"]]) {
+      matrixStats::rowMaxs(as.matrix(dplyr::pick(member_cols)))
+    } else {
+      NA
+    },
+    ens_median = if (stats[["median"]]) {
+      matrixStats::rowMedians(as.matrix(dplyr::pick(member_cols)))
+    } else {
+      NA
+    }
+  )
+
+  res <- dplyr::select(
+    res,
+    dplyr::all_of(all_cols),
+    dplyr::all_of(paste0("ens_", names(stats))[stats])
+  )
+
+  if (keep_members) {
+    return(res)
+  }
+
+  res <- res[-member_cols]
+
+  structure(
+    res,
+    class = grep("harp_ens_point_df", class(res), value = TRUE, invert = TRUE)
+  )
+
+}
+
+#' @export
+ens_prob.harp_ens_grid_df <- function(
+  x,
+  threshold    = 0,
+  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+  include_low  = TRUE,
+  include_high = TRUE,
+  keep_members = FALSE,
+  ...
+) {
+
+  comparator <- match.arg(comparator)
+
+  saved_class <- class(x)
+
+  res <- pivot_members(x)
+
+  group_cols <- colnames(res)[!colnames(res) %in% c("member", "fcst")]
+
+  res <- dplyr::summarise(
+    res,
+    prob = ens_prob(
+      .data[["fcst"]], threshold, comparator, include_low, include_high
+    ),
+    .by = dplyr::all_of(group_cols)
+  )
+
+  colnames(res)[colnames(res) == "prob"] <- paste(
+    "prob", comparator, threshold, sep = "_"
+  )
+
+  if (length(unique(res[["sub_model"]])) < 2) {
+    res <- dplyr::select(res, -dplyr::all_of("sub_model"))
+  }
+
+  if (keep_members) {
+    return(suppressMessages(dplyr::inner_join(x, res)))
+  }
+
+  structure(
+    res,
+    class = grep("harp_ens_grid_df", saved_class, value = TRUE, invert = TRUE)
+  )
+
+}
+
+#' @export
+ens_prob.harp_ens_point_df <- function(
+    x,
+    threshold    = 0,
+    comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+    include_low  = TRUE,
+    include_high = TRUE,
+    keep_members = FALSE,
+    ...
+) {
+
+  comparator <- match.arg(comparator)
+
+  saved_class <- class(x)
+
+  member_cols <- grep("_mbr[[:digit:]]{3}", colnames(x))
+
+  comp_func <- switch(
+    comparator,
+    "ge"      = function(.x) `>=`(.x, threshold),
+    "gt"      = function(.x) `>`(.x, threshold),
+    "le"      = function(.x) `<=`(.x, threshold),
+    "lt"      = function(.x) `<`(.x, threshold),
+    "between" = if (include_low && include_high) {
+      function(.x) .x >= min(threshold) && .x <= max(threshold)
+    } else if (include_low && !include_high) {
+      function(.x) .x >= min(threshold) && .x < max(threshold)
+    } else if (!include_low && include_high) {
+      function(.x) .x > min(threshold) && .x <= max(threshold)
+    } else {
+      function(.x) .x > min(threshold) && .x < max(threshold)
+    },
+    "outside" = if (include_low && include_high) {
+      function(.x) .x <= min(threshold) || .x >= max(threshold)
+    } else if (include_low && !include_high) {
+      function(.x) .x <= min(threshold) || .x > max(threshold)
+    } else if (!include_low && include_high) {
+      function(.x) .x < min(threshold) || .x >= max(threshold)
+    } else {
+      function(.x) .x < min(threshold) || .x > max(threshold)
+    }
+  )
+
+  res <- dplyr::mutate(
+    x,
+    dplyr::across(dplyr::all_of(member_cols), comp_func)
+  )
+
+  res <- ens_stats(res, sd = FALSE)
+
+  colnames(res)[colnames(res) == "ens_mean"] <- paste(
+    "prob", comparator, threshold, sep = "_"
+  )
+
+  if (keep_members) {
+    return(suppressMessages(dplyr::inner_join(x, res)))
+  }
+
+  res
+
+}

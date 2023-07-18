@@ -19,7 +19,7 @@ dom <- structure(
   class = "geodomain"
 )
 make_geolist <- function(len) {
-  as_geolist(lapply(
+  geolist(lapply(
     1:len,
     function(x) meteogrid::as.geofield(array(runif(25), c(5, 5)), dom)
   ))
@@ -33,6 +33,9 @@ test_df <- data.frame(
 test_df[["grid_det"]]    <- make_geolist(24)
 test_df[["grid_mbr000"]] <- make_geolist(24)
 test_df[["grid_mbr001"]] <- make_geolist(24)
+
+point_df <- data.frame(fcst_model = rep("point", 24))
+grid_df <- data.frame(fcst_model = rep("grid", 24))
 
 main_class <- c("harp_df", "tbl_df", "tbl", "data.frame")
 
@@ -48,17 +51,19 @@ test_that("as_harp_df throws errors when needed", {
 })
 
 test_that("as_harp_df adds the correct classes", {
+  test_df[["fcst"]] <- test_df[["point_det"]]
   expect_equal(
     as_harp_df(test_df[c(1, 2)]),
-    structure(test_df[c(1, 2)], class = c("harp_det_point_df", "harp_point_df", main_class))
+    structure(cbind(point_df, test_df[c(1, 8)]), class = c("harp_det_point_df", "harp_point_df", main_class))
   )
   expect_equal(
     as_harp_df(test_df[c(1, 3, 4)]),
     structure(test_df[c(1, 3, 4)], class = c("harp_ens_point_df", "harp_point_df", main_class))
   )
+  test_df[["fcst"]] <- test_df[["grid_det"]]
   expect_equal(
     as_harp_df(test_df[c(1, 5)]),
-    structure(test_df[c(1, 5)], class = c("harp_det_grid_df", "harp_grid_df", main_class))
+    structure(cbind(grid_df, test_df[c(1, 8)]), class = c("harp_det_grid_df", "harp_grid_df", main_class))
   )
   expect_equal(
     as_harp_df(test_df[c(1, 6, 7)]),
@@ -146,3 +151,4 @@ test_that("Single square bracket extracts a harp_list", {
     structure(list(a = as_harp_df(test_df), c = as_harp_df(test_df)), class = c("harp_list", "list"))
   )
 })
+

@@ -84,13 +84,14 @@ inline NumericMatrix cpp_geolist_sum(List geolist, bool na_rm = false) {
 
 inline NumericMatrix cpp_geolist_prod(List geolist, bool na_rm = false) {
   int i, j, k, ni, nj, nk = geolist.size();
-  NumericMatrix tmp = geolist[0];
-  ni = tmp.nrow();
-  nj = tmp.ncol();
+  NumericMatrix start = geolist[0];
+  ni = start.nrow();
+  nj = start.ncol();
   NumericMatrix result(ni, nj);
+  result = clone(start);
 
   if (na_rm) {
-    for (k = 0; k < nk; k++) {
+    for (k = 1; k < nk; k++) {
       NumericMatrix geofield = geolist[k];
       for (j = 0; j < nj; j++) {
         for (i = 0; i < ni; i++) {
@@ -99,7 +100,7 @@ inline NumericMatrix cpp_geolist_prod(List geolist, bool na_rm = false) {
       }
     }
   } else {
-    for (k = 0; k < nk; k++) {
+    for (k = 1; k < nk; k++) {
       NumericMatrix geofield = geolist[k];
       for (j = 0; j < nj; j++) {
         for (i = 0; i < ni; i++) {
@@ -115,9 +116,11 @@ inline NumericMatrix cpp_geolist_prod(List geolist, bool na_rm = false) {
 
 inline NumericMatrix cpp_geolist_min(List geolist, bool na_rm = false) {
   int i, j, k, ni, nj, nk = geolist.size();
-  NumericMatrix result = geolist[0];
-  ni = result.nrow();
-  nj = result.ncol();
+  NumericMatrix start = geolist[0];
+  ni = start.nrow();
+  nj = start.ncol();
+  NumericMatrix result(ni, nj);
+  result = clone(start);
 
   if (na_rm) {
     for (k = 1; k < nk; k++) {
@@ -150,9 +153,11 @@ inline NumericMatrix cpp_geolist_min(List geolist, bool na_rm = false) {
 
 inline NumericMatrix cpp_geolist_max(List geolist, bool na_rm = false) {
   int i, j, k, ni, nj, nk = geolist.size();
-  NumericMatrix result = geolist[0];
-  ni = result.nrow();
-  nj = result.ncol();
+  NumericMatrix start = geolist[0];
+  ni = start.nrow();
+  nj = start.ncol();
+  NumericMatrix result(ni, nj);
+  result = clone(start);
 
   if (na_rm) {
     for (k = 1; k < nk; k++) {
@@ -220,9 +225,11 @@ inline LogicalMatrix cpp_geolist_any(List geolist, bool na_rm = false) {
 
 inline LogicalMatrix cpp_geolist_all(List geolist, bool na_rm = false) {
   int i, j, k, ni, nj, nk = geolist.size();
-  LogicalMatrix result = geolist[0];
-  ni = result.nrow();
-  nj = result.ncol();
+  LogicalMatrix start = geolist[0];
+  ni = start.nrow();
+  nj = start.ncol();
+  LogicalMatrix result(ni, nj);
+  result = clone(start);
 
   if (na_rm) {
     for (k = 1; k < nk; k++) {
@@ -242,9 +249,9 @@ inline LogicalMatrix cpp_geolist_all(List geolist, bool na_rm = false) {
       LogicalMatrix geofield = geolist[k];
       for (j = 0; j < nj; j++) {
         for (i = 0; i < ni; i++) {
-          result(i, j) = LogicalVector::is_na(result(i, j)) || LogicalVector::is_na(geofield(i, j))
+          result(i, j) = is_na(all(LogicalVector::create(result(i, j), geofield(i, j))))
           ? NA_LOGICAL
-          : result(i, j) && geofield(i, j);
+          : is_true(all(LogicalVector::create(result(i, j), geofield(i, j))));
         }
       }
     }

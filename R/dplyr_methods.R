@@ -202,79 +202,25 @@ ungroup.harp_df <- function(.data, ...) {
 #'   )
 #' )
 
-bind_dfr <- function(..., .id = NULL) {
-  UseMethod("bind_dfr")
+bind <- function(..., .id = NULL) {
+  UseMethod("bind")
 }
 
 #' @export
-bind_dfr.default <- function(..., .id = NULL) {
+bind.default <- function(..., .id = NULL) {
   dplyr::bind_rows(..., .id = .id)
 }
 
 #' @export
-bind_dfr.harp_list <- function(.harp_list, .id = "fcst_model", ...) {
-  .harp_list <- dplyr::rename_with(
-    .harp_list,
-    ~gsub("[[:graph:]]+_(?=mbr[[:digit:]]+|det$)", "", .x, perl = TRUE),
-    .cols = dplyr::matches("mbr[[:digit:]]{3}|det$")
+bind.harp_list <- function(.harp_list, .id = "fcst_model", ...) {
+  .harp_list <- unclass(.harp_list)
+  ens_indices <- which(
+    sapply(.harp_list, function(x) any(grepl("harp_ens", class(x))))
   )
-  # geolist columns need to be made into simple list columns first,
-  # and then reconstructed into geolists.
-  add_suffix <- function(x) {
-    if (length(x) == 0) return(as.character())
-    paste0(x, "_geolist")
+  if (length(ens_indices) > 0) {
+    .harp_list[ens_indices] <- lapply(.harp_list[ens_indices], pivot_members)
   }
-  .harp_list <- dplyr::rename_with(
-    .harp_list, add_suffix, dplyr::where(is_geolist)
-  )
-
-  .harp_list <- dplyr::mutate(
-    .harp_list, dplyr::across(dplyr::where(is_geolist), unclass)
-  )
-
-  .harp_list <- dplyr::bind_rows(
-    mapply(
-      function(x, y) {x[[.id]] <- y; x},
-      .harp_list,
-      names(.harp_list),
-      SIMPLIFY = FALSE
-    )
-  )
-
-  check_geolist_cols(.harp_list)
-
-  .harp_list <- dplyr::mutate(
-    .harp_list, dplyr::across(dplyr::matches("_geolist$"), as_geolist)
-  )
-
-  .harp_list <- dplyr::rename_with(
-    .harp_list, function(x) gsub("_geolist$", "", x)
-  )
-
-  dplyr::relocate(
-    .harp_list, dplyr::all_of(.id), .before = dplyr::everything()
-  )
-}
-
-check_geolist_cols <- function(x) {
-  geolist_cols <- grep("_geolist$", colnames(x))
-  if (length(x) < 1) {
-    return()
-  }
-  bad_cols <- 0
-  bad_col_names <- as.character()
-  for (i in geolist_cols) {
-    if (!check_geolist_domains(x[[i]])) {
-      bad_cols <- bad_cols + 1
-      bad_col_names[bad_cols] <- sub("_geolist$", "", colnames(x)[i])
-    }
-  }
-  if (bad_cols > 0) {
-    stop(
-      "Cannot bind data frames.\n Domain mismatch in columns: ",
-      paste0("`", paste(bad_col_names, collapse = "`, `"), "`")
-    )
-  }
+  dplyr::bind_rows(.harp_list, .id = .id)
 }
 
 ### Joins

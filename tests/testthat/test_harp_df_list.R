@@ -14,8 +14,8 @@ test_that("select_members selects the correct members", {
     select_members(ens_point_list, 0),
     structure(
       list(
-        a = ens_point_list[[1]][c("fcst_dttm", "lead_time", "valid_dttm", "SID", "point_mbr000")],
-        b = ens_point_list[[2]][c("fcst_dttm", "lead_time", "valid_dttm", "SID", "point_mbr000")]
+        a = ens_point_list[[1]][c("fcst_model", "fcst_dttm", "lead_time", "valid_dttm", "SID", "a_mbr000")],
+        b = ens_point_list[[2]][c("fcst_model", "fcst_dttm", "lead_time", "valid_dttm", "SID", "b_mbr000")]
       ),
       class = c("harp_list", "list")
     )
@@ -24,18 +24,18 @@ test_that("select_members selects the correct members", {
     suppressWarnings(select_members(ens_point_list, list(0, 1))),
     structure(
       list(
-        a = ens_point_list[[1]][c("fcst_dttm", "lead_time", "valid_dttm", "SID", "point_mbr000")],
-        b = ens_point_list[[2]][c("fcst_dttm", "lead_time", "valid_dttm", "SID", "point_mbr001")]
+        a = ens_point_list[[1]][c("fcst_model", "fcst_dttm", "lead_time", "valid_dttm", "SID", "a_mbr000")],
+        b = ens_point_list[[2]][c("fcst_model", "fcst_dttm", "lead_time", "valid_dttm", "SID", "b_mbr001")]
       ),
       class = c("harp_list", "list")
     )
   )
   expect_equal(
-    select_members(ens_grid_list, list(a_fcst = 1, b_fcst = 0)),
+    select_members(ens_grid_list, list(a = 1, b = 0)),
     structure(
       list(
-        a_fcst = ens_grid_list[[1]][c("fcst_dttm", "lead_time", "valid_dttm", "grid_mbr001")],
-        b_fcst = ens_grid_list[[2]][c("fcst_dttm", "lead_time", "valid_dttm", "grid_mbr000")]
+        a = ens_grid_list[[1]][c("fcst_model", "fcst_dttm", "lead_time", "valid_dttm", "a_mbr001")],
+        b = ens_grid_list[[2]][c("fcst_model", "fcst_dttm", "lead_time", "valid_dttm", "b_mbr000")]
       ),
       class = c("harp_list", "list")
     )
@@ -44,12 +44,12 @@ test_that("select_members selects the correct members", {
 
 test_that("select_members throws error for wrong names in list", {
   expect_error(
-    select_members(ens_grid_list, list(a = 0, b = 0)),
-    "a, b not found in .data"
+    select_members(ens_grid_list, list(a_fcst = 0, b_fcst = 0)),
+    "a_fcst, b_fcst not found in .data"
   )
   expect_error(
     select_members(ens_grid_list, list(a_fcst = 0, b = 0)),
-    "b not found in .data"
+    "a_fcst not found in .data"
   )
 })
 
@@ -82,11 +82,11 @@ test_that("pivot_members returns the correct data frame", {
         lead_time = sort(rep(ens_grid_df$lead_time, 2)),
         valid_dttm = sort(rep(ens_grid_df$valid_dttm, 2)),
         member = rep(c("mbr000", "mbr001"), nrow(ens_grid_df)),
-        fcst = Reduce(c, lapply(
+        fcst = geolist(Reduce(c, lapply(
           1:nrow(ens_grid_df),
           function(i) c(ens_grid_df$grid_mbr000[i], ens_grid_df$grid_mbr001[i])
         ))
-      ),
+      )),
       class = c("harp_ens_grid_df_long", "harp_grid_df", "harp_df", "tbl_df", "tbl", "data.frame")
     )
   )
@@ -103,6 +103,7 @@ test_that("expand_date expands the date correctly", {
     expand_date(det_point_df, valid_dttm),
     structure(
         tibble::tibble(
+        fcst_model = "point",
         fcst_dttm = det_point_df$fcst_dttm,
         lead_time = det_point_df$lead_time,
         valid_dttm = det_point_df$valid_dttm,
@@ -136,10 +137,13 @@ test_that("expand_date expands the date correctly", {
       class = class(ens_point_df)
     )
   )
+  old_lctime <- Sys.getlocale("LC_TIME")
+  invisible(Sys.setlocale("LC_TIME", "en_GB.UTF-8"))
   expect_equal(
     expand_date(det_grid_df, fcst_dttm, text_months = TRUE),
     structure(
       tibble::tibble(
+        fcst_model = "grid",
         fcst_dttm = det_grid_df$fcst_dttm,
         lead_time = det_grid_df$lead_time,
         valid_dttm = det_grid_df$valid_dttm,
@@ -153,12 +157,14 @@ test_that("expand_date expands the date correctly", {
       class = class(det_grid_df)
     )
   )
+  invisible(Sys.setlocale("LC_TIME", old_lctime))
   expect_equal(
     expand_date(det_point_list, valid_dttm),
     structure(
       list(
         a = structure(
           tibble::tibble(
+            fcst_model = "a",
             fcst_dttm = det_point_list[[1]]$fcst_dttm,
             lead_time = det_point_list[[1]]$lead_time,
             valid_dttm = det_point_list[[1]]$valid_dttm,
@@ -174,6 +180,7 @@ test_that("expand_date expands the date correctly", {
         ),
         b = structure(
           tibble::tibble(
+            fcst_model = "b",
             fcst_dttm = det_point_list[[2]]$fcst_dttm,
             lead_time = det_point_list[[2]]$lead_time,
             valid_dttm = det_point_list[[2]]$valid_dttm,

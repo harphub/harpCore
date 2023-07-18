@@ -8,32 +8,68 @@
 # most mathematical and arithmetic operations can be
 # handled using the vec_math and vec_arith generics.
 
-#' @importFrom vctrs new_list_of
-#' @importFrom vctrs stop_incompatible_op
-#' @importFrom vctrs vec_arith_base
-#' @importFrom vctrs vec_math_base
-#' @importFrom rlang abort
-#' @importFrom rlang warn
-#' @importFrom meteogrid is.geofield
-#' @importFrom meteogrid is.geodomain
-#' @importFrom meteogrid as.geofield
-#' @importFrom meteogrid compare.geodomain
+#' Internal vctrs methods
+#'
+#' @import vctrs
+#' @keywords internal
+#' @name harp-geolist
+NULL
 
 ######################
 ### Helper functions #
 ######################
 
-get_domain <- function(x) attr(x, "domain")
+#' Extract domain information as a geodomain object
+#'
+#' The "domain" attribute is extracted from the input and returned if it is a
+#' geodomain.
+#'
+#' @param x A geofield or geolist
+#'
+#' @return A geodomain
+#' @export
+#'
+#' @examples
+get_domain <- function(x) {
+  UseMethod("get_domain")
+}
+
+get_domain_attr <- function(x, call = rlang::caller_env()) {
+  dom <- attr(x, "domain")
+  if (is.null(dom)) {
+    return(NULL)
+  }
+  if (!meteogrid::is.geodomain(dom)) {
+    return(NULL)
+  }
+  dom
+}
+
+#' @export
+get_domain.default      <- function(x) get_domain_attr(x)
+
+#' @export
+get_domain.geofield     <- function(x) get_domain_attr(x)
+
+#' @export
+get_domain.harp_geolist <- function(x) get_domain_attr(x)
+
+#' @export
+get_domain.geodomain    <- function(x) x
 
 check_same_domain <- function(x) {
+  domains <- lapply(x, get_domain)
+  non_null_doms <- which(vapply(domains, function(d) !is.null(d), logical(1)))
+  x <- x[non_null_doms]
   if (length(x) < 2) {
     return(TRUE)
   }
+
   all(
     sapply(
       2:length(x),
-      function(i) compare.geodomain(
-        as.geodomain(x[[i]]), as.geodomain(x[[(i - 1)]])
+      function(i) meteogrid::compare.geodomain(
+        get_domain(x[[i]]), get_domain(x[[(i - 1)]])
       )
     )
   )
@@ -41,9 +77,19 @@ check_same_domain <- function(x) {
 
 # lapply function for geolists - operates on a geolist and
 # returns a geolist
+#' Title
+#'
+#' @param X
+#' @param FUN
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 glapply <- function(X, FUN, ...) {
   if (!is_geolist(X)) {
-    abort("`glapply` can only be used on geolists.")
+    rlang::abort("`glapply` can only be used on geolists.")
   }
   .f <- function(..., domain) {
     dots <- rlang::list2(...)
@@ -52,12 +98,13 @@ glapply <- function(X, FUN, ...) {
   geolist(lapply(X, .f, domain = get_domain(X), ...))
 }
 
+#' @export
 glapply2 <- function(X, Y, FUN, ...) {
   if (!(is_geolist(X) && is_geolist(Y))) {
-    abort("`glapply2` can only be used on geolists.")
+    rlang::abort("`glapply2` can only be used on geolists.")
   }
-  if (!compare.geodomain(get_domain(X), get_domain(Y))) {
-    abort("`X` and `Y` must be geolists with the same domain.")
+  if (!meteogrid::compare.geodomain(get_domain(X), get_domain(Y))) {
+    rlang::abort("`X` and `Y` must be geolists with the same domain.")
   }
   .f <- function(..., domain) {
     dots <- rlang::list2(...)
@@ -84,21 +131,21 @@ geofield_error <- "`x` must be a 2-d numeric array."
 
 new_geofield <- function(
     x = array(numeric(), c(0, 0)),
-  domain = NULL
+    domain = NULL
 ) {
 
-  if (is.geofield(x)) {
+  if (meteogrid::is.geofield(x)) {
     return(x)
   }
 
   if (!is.null(domain)) {
-    if (!is.geodomain(domain)) {
-      abort("`domain` must be a geodomain.")
+    if (!meteogrid::is.geodomain(domain)) {
+      rlang::abort("`domain` must be a geodomain.")
     }
     if (length(x) != domain[["nx"]] * domain[["ny"]]) {
-      abort("`domain` dimensions do not match dimensions of `x`")
+      rlang::abort("`domain` dimensions do not match dimensions of `x`")
     }
-    x <- as.geofield(
+    x <- meteogrid::as.geofield(
       array(x, c(domain[["nx"]], domain[["ny"]])),
       domain = domain
     )
@@ -109,11 +156,11 @@ new_geofield <- function(
   }
 
   if (!is.numeric(x) && !is.logical(x)) {
-    abort(geofield_error)
+    rlang::abort(geofield_error)
   }
 
   if (length(dim(x)) != 2) {
-    abort(geofield_error)
+    rlang::abort(geofield_error)
   }
 
   if (is.null(domain)) {
@@ -123,21 +170,32 @@ new_geofield <- function(
   if (is.null(domain)) {
     return(structure(x, domain = domain, class = "geofield"))
   }
-  as.geofield(x, domain = domain)
+  meteogrid::as.geofield(x, domain = domain)
 }
 
 # geofield generic and methods for instantiating a geofield
+#' Title
+#'
+#' @param x
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
 geofield <- function(x, ...) {
   UseMethod("geofield")
 }
 
+#' @export
 geofield.harp_geolist <- function(x, i = 1, ...) {
   new_geofield(x[[i]])
 }
 
+#' @export
 geofield.array <- function(x, domain, ...) {
-  if (missing(domain) || !is.geodomain(domain)) {
-    abort("`domain` must be passed as a geodomain.")
+  if (missing(domain) || !meteogrid::is.geodomain(domain)) {
+    rlang::abort("`domain` must be passed as a geodomain.")
   }
   new_geofield(x, domain)
 }
@@ -170,31 +228,47 @@ new_geolist <- function(x = list(), domain = NULL) {
 }
 
 # Validator
-validate_geolist <- function(x) {
+validate_geolist <- function(x, call = rlang::caller_env()) {
   if (length(x) < 1) {
     return(x)
   }
   valid_indices <- which(
     sapply(x, function(.x) length(.x) > 0)
   )
-  if (!all(sapply(x[valid_indices], is.geofield))) {
-    abort("All elements of a geolist must be geofields.")
+  if (length(valid_indices) < 1) {
+    return(x)
+  }
+  if (!all(sapply(x[valid_indices], meteogrid::is.geofield))) {
+    rlang::abort("All elements of a geolist must be geofields.", call = call)
   }
   if (!check_same_domain(x[valid_indices])) {
-    abort("All geofields in a geolist must be on the same domain.")
+    rlang::abort(
+      "All geofields in a geolist must be on the same domain.", call = call
+    )
   }
-  if (!length(unique(sapply(x[valid_indices], mode))) == 1) {
-    abort("All geofields must be the same type.")
-  }
+  # if (!length(unique(sapply(x[valid_indices], mode))) == 1) {
+  #   rlang::abort("All geofields must be the same type.", call = call)
+  # }
   if (
-    !is.null(get_domain(x)) && !identical(get_domain(x), get_domain(x[[1]]))
+    !is.null(get_domain(x)) &&
+    !identical(get_domain(x), get_domain(x[valid_indices][[1]]))
   ) {
-    abort("Domain mismatch between geolist and geofields.")
+    rlang::abort("Domain mismatch between geolist and geofields.", call = call)
   }
   x
 }
 
 # User facing instantiator
+
+#' Title
+#'
+#' @param ...
+#' @param domain
+#'
+#' @return
+#' @export
+#'
+#' @examples
 geolist <- function(..., domain = NULL) {
   x <- list(...)
   if (length(x) == 1 && is.list(x[[1]])) {
@@ -204,12 +278,21 @@ geolist <- function(..., domain = NULL) {
 }
 
 # Check if is geolist
+#' @export
 is_geolist <- function(x) {
   inherits(x, "harp_geolist")
 }
 
 # Formatting for geolists
-format.harp_geolist <- function(x, ...) {
+#' @export
+print.harp_geolist <- function(x, n = 10, ...) {
+  obj_print_header(x, ...)
+  obj_print_data(x, n, ...)
+  obj_print_footer(x, n, ...)
+  invisible(x)
+}
+
+print_data_harp_geolist <- function(x, ...) {
   format_one <- function(i, x, ws) {
     ws <- ws - nchar(i)
     index_txt <- paste0(paste(rep(" ", ws), collapse = ""), "[[", i, "]]")
@@ -219,30 +302,50 @@ format.harp_geolist <- function(x, ...) {
       txt <- paste(index_txt, "<not_a_geofield>\n")
     } else {
       dom <- get_domain(x)
+      txt <- paste0(
+        " geofield [",
+        dom$nx,
+        " x ",
+        dom$ny, "] "
+      )
       num_na <- sum(is.na(x))
       if (num_na < 1) {
         na_txt <- ""
       } else {
         na_txt <- paste(" NAs:", num_na)
       }
-      min_x  <- min(x, na.rm = TRUE)
-      max_x  <- max(x, na.rm = TRUE)
-      mean_x <- mean(x, na.rm = TRUE)
-      min_txt  <- pillar::style_subtle_num(sprintf("%.3f", min_x), min_x < 0)
-      max_txt  <- pillar::style_subtle_num(sprintf("%.3f", max_x), max_x < 0)
-      mean_txt <- pillar::style_subtle_num(sprintf("%.3f", mean_x), mean_x < 0)
-      txt <- paste0(
-        index_txt,
-        " <geofield [",
-        dom$nx,
-        " x ",
-        dom$ny, "] ",
-        "Min = ", min_txt,
-        " Max = ", max_txt,
-        " Mean = ", mean_txt,
-        na_txt,
-        ">\n"
-      )
+      if (is.numeric(x)) {
+        min_x  <- min(x, na.rm = TRUE)
+        max_x  <- max(x, na.rm = TRUE)
+        mean_x <- mean(x, na.rm = TRUE)
+        min_txt  <- pillar::style_subtle_num(sprintf("%.3f", min_x), min_x < 0)
+        max_txt  <- pillar::style_subtle_num(sprintf("%.3f", max_x), max_x < 0)
+        mean_txt <- pillar::style_subtle_num(sprintf("%.3f", mean_x), mean_x < 0)
+        txt <- paste0(
+          index_txt,
+          " <numeric", txt,
+          "Min = ", min_txt,
+          " Max = ", max_txt,
+          " Mean = ", mean_txt,
+          na_txt,
+          ">\n"
+        )
+      } else if (is.logical(x)) {
+        num_true  <- sum(x, na.rm = TRUE)
+        num_false <- sum(!x[!x], na.rm = TRUE)
+        true_txt  <- num_true
+        false_txt <- pillar::style_subtle_num(num_false, num_false > 0)
+        txt <- paste0(
+          index_txt,
+          " <logical", txt,
+          "TRUE: ", true_txt,
+          " FALSE: ", false_txt,
+          na_txt,
+          ">\n"
+        )
+      } else {
+        txt <- paste0(index_txt, "<", txt, ">\n")
+      }
     }
     cat(txt)
   }
@@ -252,15 +355,17 @@ format.harp_geolist <- function(x, ...) {
   )
 }
 
+#' @export
 obj_print_data.harp_geolist <- function(x, n = 10, ...) {
   if (length(x) != 0) {
     if (length(x) <= n) {
       n <- length(x)
     }
-    format(x[1:n])
+    print_data_harp_geolist(x[1:n])
   }
 }
 
+#' @export
 obj_print_footer.harp_geolist <- function(x, n = 10, ...) {
   if (length(x) <= n) {
     return()
@@ -270,54 +375,102 @@ obj_print_footer.harp_geolist <- function(x, n = 10, ...) {
   cat(pillar::style_subtle("# Use `print(n = ...)` to see more\n"))
 }
 
+#' @export
 obj_print_header.harp_geolist <- function(x, ...) {
   cat(pillar::style_subtle(paste0("<harp_geolist[", length(x), "]>\n")))
 }
 
-# Formatting for geolists in data frame column
-pillar_shaft.harp_geolist <- function(x, ...) {
-  format_one <- function(x) {
-    if (length(x) == 0) {
-      x <- "<empty>"
-    } else if (!inherits(x, "geofield")) {
-      x <- "<not_a_geofield>"
-    } else {
-      dom <- get_domain(x)
-      x <- paste0("<gfld [", dom$nx, " x ", dom$ny, "]>")
-    }
-    pillar::style_subtle(x)
-  }
-  pillar::new_pillar_shaft_simple(
-    vapply(x, format_one, character(1))
+#' @export
+format.harp_geolist <- function(x, ...) {
+  empties <- which(sapply(x, length) < 1)
+  non_empties <- setdiff(seq_along(x), empties)
+  out <- character(length(x))
+  out[non_empties] <- sapply(
+    x[non_empties],
+    function(.x) paste("<geofield>", paste(dim(.x), collapse = " x "))
   )
+  out[empties] <- "<empty>"
+  out
 }
 
+# Formatting for geolists in data frame column
+# #' @export
+# pillar_shaft.harp_geolist <- function(x, ...) {
+#   out <- format(x, formatter = geolist_formatter)
+#   pillar::new_pillar_shaft_simple(out)
+#   # format_row <- function(x) {
+#   #   if (length(x) == 0) {
+#   #     x <- "<empty>"
+#   #   } else if (!inherits(x, "geofield")) {
+#   #     x <- "<not_a_geofield>"
+#   #   } else {
+#   #     dom <- get_domain(x)
+#   #     x <- paste0("<gfld [", dom$nx, " x ", dom$ny, "]>")
+#   #   }
+#   #   pillar::style_subtle(x)
+#   # }
+#   # pillar::new_pillar_shaft_simple(
+#   #   vapply(x, format_row, character(1))
+#   # )
+# }
+
 # Type abbreviation for data frame headings
-vec_ptype_abbr.harp_geolist <- function(x, ...) "hrp_glst"
+#' @export
+vec_ptype_abbr.harp_geolist <- function(x, ...) "geolist"
 
 ##########################
 ### Casting and coercion #
 ##########################
 
 #Coercion
+ptype2_check_domains <- function(X) {
+  if (!check_same_domain(X)) {
+    stop("geolist domains are not the same", call. = FALSE)
+  }
+}
+
+#' @export
 vec_ptype2.harp_geolist.harp_geolist <- function(x, y, ...) {
+  ptype2_check_domains(list(x, y))
   geolist(domain = get_domain(x))
 }
 
+#' @export
 vec_ptype2.harp_geolist.geofield <- function(x, y, ...) {
+  ptype2_check_domains(list(x, y))
+  y <- geolist(y)
   geolist(domain = get_domain(x))
 }
 
+#' @export
 vec_ptype2.geofield.harp_geolist <- function(x, y, ...) {
+  ptype2_check_domains(list(x, y))
+  x <- geolist(x)
+  geolist(domain = get_domain(x))
+}
+
+#' @export
+vec_ptype2.geofield.geofield <- function(x, y, ...) {
+  ptype2_check_domains(list(x, y))
   geolist(domain = get_domain(x))
 }
 
 # Casting
+
+#' @export
 vec_cast.geofield.geofield <- function(x, to, ...) x
 
+#' @export
 vec_cast.harp_geolist.harp_geolist <- function(x, to, ...) x
 
-vec_cast.geofield.harp_geolist <- function(x, to, ...) geolist(x)
+#' @export
+vec_cast.harp_geolist.geofield <- function(x, to, ...) geolist(x)
+
+##############################
+# Concatenation of geofields #
+##############################
+
+c.geofield <- function(...) geolist(list(...))
 
 #############################################
 # geofield Ops methods with double dispatch #
@@ -326,6 +479,7 @@ vec_cast.geofield.harp_geolist <- function(x, to, ...) geolist(x)
 # Ensure mathematical operations with geofields return geofields
 # This should possibly be in meteogrid?
 
+#' @export
 Ops.geofield <- function(e1, e2) {
   if (missing(e2)) {
     e2 <- structure(list(), class = "MISSING")
@@ -349,6 +503,10 @@ Ops_gfld.numeric <- function(op, x, y) {
   UseMethod("Ops_gfld.numeric", y)
 }
 
+Ops_gfld.array <- function(op, x, y) {
+  UseMethod("Ops_gfld.array", y)
+}
+
 Ops_gfld.geofield.default <- function(op, x, y) {
   stop_incompatible_op(op, x, y)
 }
@@ -356,23 +514,59 @@ Ops_gfld.geofield.default <- function(op, x, y) {
 Ops_gfld.geofield.geofield <- function(op, x, y) {
   dom <- get_domain(x)
   if (!check_same_domain(list(dom, get_domain(y)))) {
-    abort("geofields must be on the same domain.")
+    rlang::abort("geofields must be on the same domain.")
   }
   op <- match.fun(op)
   new_geofield(op(unclass(x), unclass(y)), domain = dom)
 }
 
 Ops_gfld.geofield.numeric <- function(op, x, y) {
+  if (length(y) > 1) {
+    stop_incompatible_op(
+      op, x, y,
+      details = "for <{vec_ptype_full(y)}> of length > 1"
+    )
+  }
   dom <- get_domain(x)
   op <- match.fun(op)
   new_geofield(op(unclass(x), y), domain = dom)
+}
+
+Ops_gfld.geofield.NULL <- function(op, x, y) {
+  new_geofield()
 }
 
 Ops_gfld.geofield.default <- function(op, x, y) {
   stop_incompatible_op(op, x, y)
 }
 
+Ops_gfld.geofield.array <- function(op, x, y) {
+  if (!identical(dim(x), dim(y))) {
+    stop_incompatible_op(op, x, y)
+  } else {
+    op <- match.fun(op)
+    dom <- get_domain(x)
+    new_geofield(op(unclass(x), y))
+  }
+}
+
+Ops_gfld.array.geofield <- function(op, x, y) {
+  if (!identical(dim(x), dim(y))) {
+    stop_incompatible_op(op, x, y)
+  } else {
+    op <- match.fun(op)
+    dom <- get_domain(y)
+    new_geofield(op(x, unclass(y)))
+  }
+}
+
 Ops_gfld.numeric.geofield <- function(op, x, y) {
+  if (length(x) > 1) {
+    stop_incompatible_op(
+      op, x, y,
+      details = "for <{vec_ptype_full(x)}> of length > 1"
+    )
+  }
   dom <- get_domain(y)
   op <- match.fun(op)
   new_geofield(op(x, unclass(y)), domain = dom)
@@ -385,20 +579,31 @@ Ops_gfld.geofield.MISSING <- function(op, x, y) {
     "-" = x * -1,
     "+" = x,
     "!" = new_geofield(!unclass(x), domain = dom),
-    abort(paste(op, "<geofield> is not permitted"))
+    rlang::abort(paste(op, "<geofield> is not permitted"))
   )
+}
+
+#' @export
+is.na.geofield <- function(x) {
+ dom <- get_domain(x)
+ new_geofield(is.na(unclass(x)), domain = dom)
 }
 
 ##################
 ### geolist math #
 ##################
 
+#' @export
+is.na.harp_geolist <- function(x) {
+  glapply(x, is.na)
+}
+
 math_out <- function(x, domain) {
   geolist(new_geofield(x, domain = domain))
 }
 
+#' @export
 vec_math.harp_geolist <- function(.fn, .x, na.rm = FALSE, ...) {
-  browser()
   dom <- get_domain(.x)
   switch(
     .fn,
@@ -415,11 +620,15 @@ vec_math.harp_geolist <- function(.fn, .x, na.rm = FALSE, ...) {
   )
 }
 
+# min and max are not part of vec_math
+
+#' @export
 min.harp_geolist <- function(x, na.rm = FALSE) {
   domain <- get_domain(x)
   math_out(harpCore:::cpp_geolist_min(x, na.rm), dom)
 }
 
+#' @export
 max.harp_geolist <- function(x, na.rm = FALSE) {
   domain <- get_domain(x)
   math_out(harpCore:::cpp_geolist_max(x, na.rm), dom)
@@ -427,6 +636,7 @@ max.harp_geolist <- function(x, na.rm = FALSE) {
 
 # var and sd are not generics - need separate functions
 
+#' @export
 variance <- function(x, na.rm = FALSE, ...) {
   UseMethod("variance")
 }
@@ -462,13 +672,13 @@ std_dev.harp_geolist <- function(x, na.rm = FALSE, ...) {
 #' @export
 diff.harp_geolist <- function(x, lag = 1, trim = TRUE, ...) {
   if (round(lag) != lag) {
-    abort("lag must be an integer.")
+    rlang::abort("`lag` must be an integer.")
   }
   if (lag == 0) {
     return(x)
   }
   if (lag > (length(x) - 1)) {
-    abort("lag is too long.")
+    rlang::abort("`lag` is too long.")
   }
   if (lag > 0) {
     res <- x - dplyr::lag(x, n = lag)
@@ -483,4 +693,98 @@ diff.harp_geolist <- function(x, lag = 1, trim = TRUE, ...) {
     return(res[1:(length(res) + lag)])
   }
   res
+}
+
+########################
+### geolist arithmetic #
+########################
+
+# Need to set a method for Ops to separate out arithmetic and comparison
+
+#' @export
+Ops.harp_geolist <- function(e1, e2) {
+  switch(
+    .Generic,
+    "+"   = ,
+    "-"   = ,
+    "/"   = ,
+    "*"   = ,
+    "^"   = ,
+    "%%"  = ,
+    "%/%" = ,
+    "!"   = ,
+    "&"   = ,
+    "|"   = NextMethod(),
+    harp_geolist_compare(.Generic, e1, e2)
+  )
+}
+
+# Arithmetic
+
+#' @export
+#' @method vec_arith harp_geolist
+vec_arith.harp_geolist <- function(op, x, y, ...) {
+  UseMethod("vec_arith.harp_geolist", y)
+}
+
+#' @export
+vec_arith.harp_geolist.default <- function(op, x, y, ...) {
+  stop_incompatible_op(op, x, y)
+}
+
+#' @export
+#' @method vec_arith.harp_geolist harp_geolist
+vec_arith.harp_geolist.harp_geolist <- function(op, x, y, ...) {
+  if (length(x) != length(y)) {
+    stop_incompatible_op(
+      op, x, y,
+      message = glue::glue(
+        "<{vec_ptype_full(x)}[{length(x)}]> {op} <{vec_ptype_full(y)}[{length(y)}]> is not permitted"
+      )
+    )
+  }
+  glapply2(x, y, op, ...)
+}
+
+#' @export
+#' @method vec_arith.harp_geolist numeric
+vec_arith.harp_geolist.numeric <- function(op, x, y, ...) {
+  glapply(x, function(z) vec_arith_base(op, z, y, ...))
+}
+
+#' @export
+#' @method vec_arith.numeric harp_geolist
+vec_arith.numeric.harp_geolist <- function(op, x, y, ...) {
+  glapply(y, function(z) vec_arith_base(op, z, x, ...))
+}
+
+# Comparison
+
+harp_geolist_compare <- function(op, x, y, ...) {
+  UseMethod("harp_geolist_compare", x)
+}
+
+harp_geolist_compare.harp_geolist <- function(op, x, y, ...) {
+  UseMethod("harp_geolist_compare.harp_geolist", y)
+}
+
+harp_geolist_compare.harp_geolist.default <- function(op, x, y, ...) {
+  stop_incompatible_op(op, x, y)
+}
+
+harp_geolist_compare.harp_geolist.harp_geolist <- function(op, x, y, ...) {
+  glapply2(x, y, op, ...)
+}
+
+harp_geolist_compare.harp_geolist.numeric <- function(op, x, y, ...) {
+  glapply(x, op, y, ...)
+}
+
+harp_geolist_compare.numeric <- function(op, x, y, ...) {
+  UseMethod("harp_geolist_compare.numeric", y)
+}
+
+harp_geolist_compare.numeric.harp_geolist <- function(op, x, y, ...) {
+  op <- match.fun(op)
+  glapply(y, function(.y) op(x, .y), ...)
 }

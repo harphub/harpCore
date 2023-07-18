@@ -1,3 +1,7 @@
+###########################
+# Interpolation to points #
+###########################
+
 #' Title
 #'
 #' @param x
@@ -13,82 +17,1080 @@
 #'
 #' @examples
 geo_points <- function(
-  x,
-  points,
-  method       = c("bilinear", "nearest", "bicubic"),
-  mask         = NULL,
-  force        = FALSE,
-  weights      = NULL,
-  keep_weights = FALSE
+    x,
+    points,
+    method       = c("bilinear", "nearest", "bicubic"),
+    mask         = NULL,
+    force        = FALSE,
+    weights      = NULL,
+    keep_weights = FALSE
 ) {
   UseMethod("geo_points")
 }
 
+#' @export
 geo_points.geofield <- function(
-  x,
-  points,
-  method       = c("bilinear", "nearest", "bicubic"),
-  mask         = NULL,
-  force        = FALSE,
-  weights      = NULL,
-  keep_weights = FALSE
+    x,
+    points,
+    method       = c("bilinear", "nearest", "bicubic"),
+    mask         = NULL,
+    force        = FALSE,
+    weights      = NULL,
+    keep_weights = FALSE
 ) {
+
+  if (missing(points) && is.null(weights)) {
+    cli::cli_alert_info("Using default points from `station_list`.")
+    points <- get("station_list")
+  }
+
   if (is.null(weights) && is.null(points)) {
     stop("Either points or weights must be passed.")
   }
+
   method <- match.arg(method)
+
   if (is.null(weights)) {
+
     ll_cols <- c("lon", "lat")
+
     if (
       !is.data.frame(points) ||
-        all(intersect(ll_cols, colnames(points)) != ll_cols)
+      all(intersect(ll_cols, colnames(points)) != ll_cols)
     ) {
-      stop(
-        "points must be a data frame including columns 'lon' and 'lat'."
+      rlang::abort(
+        "`points` must be a data frame including columns 'lon' and 'lat'."
       )
     }
-    options(warn = -1)
-    x <- dplyr::mutate(
-      points,
-      point_data = suppressWarnings(meteogrid::point.interp(
-        x,
-        lon       = points[["lon"]],
-        lat       = points[["lat"]],
-        method    = method,
-        mask      = mask,
-        pointmask = points[["mask"]],
-        force     = force
-      ))
-    )
-    options(warn = 0)
-
-  } else {
 
     options(warn = -1)
-    x <- dplyr::mutate(
-      points,
-      point_data = suppressWarnings(
-        meteogrid::point.interp(x, weights = weights)
-      )
-    )
+    weights <- suppressWarnings(geo_weights_points(
+      x,
+      points    = points,
+      method    = method,
+      mask      = mask,
+      force     = force
+    ))
     options(warn = 0)
+
   }
-  x[complete.cases(x), ]
+
+  options(warn = -1)
+  weights[["point_data"]] = suppressWarnings(
+    meteogrid::point.interp(x, method = method, weights = weights)
+  )
+
+  options(warn = 0)
+
+  if (!keep_weights) {
+    non_weight_cols <- intersect(
+      union(
+        colnames(get("station_list")),
+        c("lon", "lat", "x", "y", "point_data")
+      ),
+      colnames(weights)
+    )
+    weights <- weights[non_weight_cols]
+  }
+
+  weights <- weights[stats::complete.cases(weights), ]
+  attr(weights, "domain") <- get_domain(x)
+  weights
+
 }
 
-geo_points.geolist <- function(
-  x,
-  points,
-  method       = c("bilinear", "nearest", "bicubic"),
-  mask         = NULL,
-  force        = FALSE,
-  weights      = NULL,
-  keep_weights = FALSE
+#' @export
+geo_points.harp_geolist <- function(
+    x,
+    points,
+    method       = c("bilinear", "nearest", "bicubic"),
+    mask         = NULL,
+    force        = FALSE,
+    weights      = NULL,
+    keep_weights = FALSE
 ) {
+
+  if (missing(points)) {
+    message("Using default points from `station_list`.")
+    points <- get("station_list")
+  }
+
+  method <- match.arg(method)
+
   if (is.null(weights)) {
     weights <- geo_weights_points(x[[1]], points, method, mask, force)
   }
-  #dplyr::bind_rows(
-    lapply(x, geo_points, points, weights = weights)
-  #)
+
+  non_weight_cols <- c(
+    intersect(colnames(points), colnames(weights)), "point_data"
+  )
+
+  points <- dplyr::inner_join(
+    points, weights, by = intersect(colnames(points), colnames(weights))
+  )
+
+  res <- lapply(
+    x, geo_points, points, weights = weights,
+    method = method, keep_weights = FALSE
+  )
+
+  if (keep_weights) {
+    attr(res, "weights") <- weights
+  }
+
+  attr(res, "domain") <- get_domain(x)
+  res
+
+}
+
+#' @export
+geo_points.harp_grid_df <- function(
+    x,
+    points,
+    method       = c("bilinear", "nearest", "bicubic"),
+    mask         = NULL,
+    force        = FALSE,
+    weights      = NULL,
+    keep_weights = FALSE
+) {
+
+  if (missing(points)) {
+    message("Using default points from `station_list`.")
+    points <- get("station_list")
+  }
+
+  out_cols     <- union(colnames(x), colnames(points))
+  method       <- match.arg(method)
+  geolist_cols <- colnames(x)[which(sapply(x, is_geolist))]
+  domains      <- lapply(x[geolist_cols], get_domain)
+  same_domains <- check_same_domain(domains)
+
+  if (same_domains) {
+    weights <- geo_weights_points(domains[[1]], points, method, mask, force)
+  }
+
+  x <- dplyr::mutate(
+    x,
+    dplyr::across(
+      geolist_cols,
+      ~geo_points(.x, points, method, mask, force, weights, keep_weights)
+    )
+  )
+
+  if (keep_weights) weights_attr <- list()
+
+  for (col in geolist_cols) {
+    if (keep_weights) {
+      weights_attr[[col]] <- attr(x[[col]], "weights")
+    }
+    x[[col]] <- lapply(
+      x[[col]],
+      function(d) {colnames(d)[colnames(d) == "point_data"] <- col; d}
+    )
+    if (col != geolist_cols[1]) {
+      x[[col]] <- lapply(
+        x[[col]],
+        function(d) d[col]
+      )
+    }
+  }
+
+  x <- as_harp_df(tidyr::unnest(x, geolist_cols))
+
+  if (keep_weights) {
+    attr(x, "weights") <- weights_attr
+  }
+
+  x <- x[c(setdiff(out_cols, geolist_cols), geolist_cols)]
+  attr(x, "domain") <- domains
+  x
+
+}
+
+#############################
+# Interpolation to new grid #
+#############################
+
+#' Title
+#'
+#' @param x
+#' @param new_grid
+#' @param method
+#' @param mask
+#' @param new_mask
+#' @param weights
+#' @param keep_weights
+#'
+#' @return
+#' @export
+#'
+#' @examples
+geo_regrid <- function(
+    x,
+    new_grid,
+    method       = c("bilinear", "nearest", "bicubic"),
+    mask         = NULL,
+    new_mask     = NULL,
+    weights      = NULL,
+    keep_weights = FALSE
+) {
+  UseMethod("geo_regrid")
+}
+
+check_args_geo_regrid <- function(
+    x, new_grid, mask, new_mask, caller = rlang::caller_env()
+) {
+
+  if (missing(new_grid)) return()
+
+  dom <- get_domain(new_grid)
+
+  if (is.null(dom)) {
+    rlang::abort(
+      "`new_grid` must be a geodomain or a geolfield or geolist.",
+      call = caller
+    )
+  }
+
+  if (!is.null(mask)) {
+    mask_error <- "`mask` must be a geofield on the same domain as `x`."
+
+    if (!meteogrid::is.geofield(mask)) {
+      rlang::abort(mask_error, call = caller)
+    }
+
+    if (!check_same_domain(list(x, new_grid))) {
+      rlang::abort(mask_error, call = caller)
+    }
+
+    if (is.null(new_mask)) {
+      rlang::abort(
+        "For masking, both `mask` and `new_mask` should be passed.",
+        call = caller
+      )
+    }
+
+    new_mask_error <- gsub(
+      "x", "new_grid", gsub("`mask`", "`new_mask`", mask_error)
+    )
+
+    if (!meteogrid::is.geofield(new_mask)) {
+      rlang::abort(new_mask_error, call = caller)
+    }
+
+    if (!check_same_domain(list(new_grid, new_mask))) {
+      rlang::abort(new_mask_error, call = caller)
+    }
+
+  } else {
+
+    if (!is.null(new_mask)) {
+      rlang::abort(
+        "`new_mask` requires `mask` to also be passed.", call = caller
+      )
+    }
+
+  }
+
+}
+#' @export
+geo_regrid.geofield <- function(
+    x,
+    new_grid,
+    method       = c("bilinear", "nearest", "bicubic"),
+    mask         = NULL,
+    new_mask     = NULL,
+    weights      = NULL,
+    keep_weights = FALSE
+) {
+
+  check_args_geo_regrid(x, new_grid, mask, new_mask)
+
+  method  <- match.arg(method)
+  dom     <- get_domain(x)
+
+  recompute_weights <- FALSE
+
+  if (!is.null(weights) &&
+      !check_same_domain(list(attr(weights, "olddomain"), dom))
+  ) {
+    arg1 <- "x"
+    arg2 <- "weights"
+    var1 <- "olddomain"
+    cli::cli_warn(c(
+      "{.arg {arg1}} and {.var {var1}} in {.arg {arg2}} do not match.",
+      "i" = "Recomputing weights"
+    ))
+    recompute_weights <- TRUE
+    weights <- NULL
+  }
+
+  if (is.null(weights)) {
+    if (missing(new_grid)) {
+      arg1 <- "new_grid"
+      arg2 <- "weights"
+      if (recompute_weights) {
+        cli::cli_abort(c(
+          "Cannot recompute regridding weights:",
+          "i" = "If {.arg {arg2}} is not available, {.arg {arg1}} must be passed.",
+          "x" = "{.arg {arg1}} not passed."
+        ))
+      } else {
+        cli::cli_abort(c(
+          "Cannot compute regridding weights:",
+          "x" = "{.arg {arg1}} not passed."
+        ))
+      }
+    }
+    new_dom <- get_domain(new_grid)
+    weights <- geo_weights_regrid(dom, new_dom, method, mask, new_mask)
+  }
+
+  res <- meteogrid::regrid(x, weights = weights)
+
+  if (keep_weights) {
+    attr(res, "weights") <- weights
+  }
+
+  res
+}
+
+#' @export
+geo_regrid.harp_geolist <- function(
+    x,
+    new_grid,
+    method       = c("bilinear", "nearest", "bicubic"),
+    mask         = NULL,
+    new_mask     = NULL,
+    weights      = NULL,
+    keep_weights = FALSE
+) {
+
+  dom <- get_domain(x)
+  check_args_geo_regrid(dom, new_grid, mask, new_mask)
+
+  method <- match.arg(method)
+
+  if (is.null(weights)) {
+    weights <- geo_weights_regrid(dom, new_grid, method, mask, new_mask)
+  }
+
+  res <- glapply(x, geo_regrid, weights = weights)
+  if (keep_weights) {
+    attr(res, "weights") <- weights
+  }
+  res
+}
+
+#' @export
+geo_regrid.harp_grid_df <- function(
+    x,
+    new_grid,
+    method       = c("bilinear", "nearest", "bicubic"),
+    mask         = NULL,
+    new_mask     = NULL,
+    weights      = NULL,
+    keep_weights = FALSE
+) {
+
+  method       <- match.arg(method)
+  geolist_cols <- colnames(x)[which(sapply(x, is_geolist))]
+  domains      <- lapply(x[geolist_cols], get_domain)
+  same_domains <- check_same_domain(domains)
+
+  if (same_domains) {
+    weights <- geo_weights_regrid(domains[[1]], new_grid, method, mask, new_mask)
+  }
+
+  x <- dplyr::mutate(
+    x,
+    dplyr::across(
+      geolist_cols,
+      ~geo_regrid(.x, new_grid, method, mask, new_mask, weights, keep_weights)
+    )
+  )
+
+  if (keep_weights) weights_attr <- lapply(x[geolist_cols], attr, "weights")
+
+  if (keep_weights) {
+    attr(x, "weights") <- weights_attr
+  }
+
+  x
+}
+
+###########################
+# Extraction of a subgrid #
+###########################
+
+#' Title
+#'
+#' @param x
+#' @param i1
+#' @param i2
+#' @param j1
+#' @param j2
+#'
+#' @return
+#' @export
+#'
+#' @examples
+geo_subgrid <- function(x, i1, i2, j1, j2) {
+  UseMethod("geo_subgrid")
+}
+
+check_args_geo_subgrid <- function(dom, i1, i2, j1, j2, caller = rlang::caller_env()) {
+  args <- c("i1", "i2", "j1", "j2")
+  non_numerics <- which(!vapply(list(i1, i2, j1, j2), is.numeric, logical(1)))
+  if (any(non_numerics)) {
+    args <- args[non_numerics]
+    cli::cli_abort(c(
+      "Non numeric arguments to function:",
+      "x" = "{.arg {args}} {?is/are} not numeric."
+    ), call = caller)
+  }
+  values <- c(i1, i2, j1, j2)
+  non_integers <- which((values %% as.integer(values) != 0))
+  if (any(non_integers)) {
+    args <- args[non_integers]
+    values <- as.character(values[non_integers])
+    i1 <- floor(i1)
+    i2 <- ceiling(i2)
+    j1 <- floor(j1)
+    j2 <- ceiling(j2)
+    new_values <- as.character(c(i1, i2, j1, j2)[non_integers])
+    cli::cli_warn(c(
+      "Non integer arguments to geo_subgrid:",
+      "x" = "{.arg {args}}: ({values}) {?is/are} not {?an integer/integers}.",
+      "i" = "Rounding to: {new_values}."
+    ))
+  }
+  if (i1 > i2) {
+    args <- c("i1", "i2")
+    cli::cli_abort(c(
+      "Invalid arguments:",
+      "i" = "{.arg {args[1]}} must be less than {.arg {args[2]}}",
+      "x" = "{.arg {args[1]}} = {i1}; {.arg {args[2]}} = {i2}"
+    ), call = caller)
+  }
+  if (j1 > j2) {
+    args <- c("j1", "j2")
+    cli::cli_abort(c(
+      "Invalid arguments:",
+      "i" = "{.arg {args[1]}} must be less than {.arg {args[2]}}",
+      "x" = "{.arg {args[1]}} = {i1}; {.arg {args[2]}} = {i2}"
+    ), call = caller)
+  }
+  if (i1 < 1 || i2 > dom[["nx"]] || j1 < 1 || j2 > dom[["ny"]]) {
+    args <- c("i1", "i2", "j1", "j2")
+    values <- as.character(c(i1, i2, j1, j2))
+    if (i1 < 1) i1 <- 1
+    if (i2 > dom[["nx"]]) i2 <- dom[["nx"]]
+    if (j1 < 1) j1 <- 1
+    if (j2 > dom[["nx"]]) j2 <- dom[["ny"]]
+    dims <- as.character(c(1, dom[["nx"]], 1, dom[["ny"]]))
+    new_values <- as.character(c(i1, i2, j1, j2))
+    cli::cli_warn(c(
+      "Subgrid dimensions outside the domain dimensions:",
+      "x" = "{.arg {args}}: ({values}) {?is/are} outside domain dimensions ({dims}).",
+      "i" = "Adjusting {.arg {args}} to: {new_values}."
+    ))
+  }
+  c(i1, i2, j1, j2)
+}
+
+#' @export
+geo_subgrid.geofield <- function(x, i1, i2, j1, j2) {
+  args <- check_args_geo_subgrid(get_domain(x), i1, i2, j1, j2)
+  meteogrid::subgrid(x, args[1], args[2], args[3], args[4])
+}
+
+#' @export
+geo_subgrid.geodomain <- function(x, i1, i2, j1, j2) {
+  args <- check_args_geo_subgrid(x, i1, i2, j1, j2)
+  meteogrid::subgrid(x, args[1], args[2], args[3], args[4])
+}
+
+#' @export
+geo_subgrid.harp_geolist <- function(x, i1, i2, j1, j2) {
+  args <- check_args_geo_subgrid(get_domain(x), i1, i2, j1, j2)
+  glapply(x, geo_subgrid, args[1], args[2], args[3], args[4])
+}
+
+#' @export
+geo_subgrid.harp_grid_df <- function(x, i1, i2, j1, j2) {
+
+  geolist_cols <- colnames(x)[which(sapply(x, is_geolist))]
+  domains      <- lapply(x[geolist_cols], get_domain)
+  same_domains <- check_same_domain(domains)
+
+  if (!same_domains) {
+    arg <- "x"
+    cli::cli_warn(c(
+      "Not all columns in {.arg {arg}} are on the same domain...",
+      "i" = "Subgrid output will be on differnt domains."
+    ))
+  }
+
+  dplyr::mutate(
+    x,
+    dplyr::across(
+      geolist_cols,
+      ~geo_subgrid(.x, i1, i2, j1, j2)
+    )
+  )
+
+}
+
+#####################
+# Zoom in to a grid #
+#####################
+
+#' Title
+#'
+#' @param x
+#' @param centre_lon
+#' @param centre_lat
+#' @param radius_x
+#' @param radius_y
+#'
+#' @return
+#' @export
+#'
+#' @examples
+geo_zoom <- function(x, centre_lon, centre_lat, radius_x, radius_y) {
+  UseMethod("geo_zoom")
+}
+
+get_zoom_indices <-  function(
+    x, centre_lon, centre_lat, radius_x, radius_y, caller = rlang::caller_env()
+) {
+
+  dom <- get_domain(x)
+
+  cindex <- meteogrid::lalopoint(x, centre_lon, centre_lat)[["index"]][1, ]
+  if (any(is.na(cindex))) {
+    args   <- c("centre_lon", "centre_lat")[is.na(cindex)]
+    values <- c(centre_lon, centre_lat)[is.na(cindex)]
+    cli::cli_abort(c(
+      "{.arg {args}} {?is/are} outside of domain:",
+      "x" = "{.arg {args}} = ({values})"
+    ), call = caller)
+  }
+
+  list(
+    i1 = cindex[["i"]] - radius_x,
+    i2 = cindex[["i"]] + radius_x,
+    j1 = cindex[["j"]] - radius_y,
+    j2 = cindex[["j"]] + radius_y
+  )
+
+}
+
+#' @export
+geo_zoom.geofield <- function(x, centre_lon, centre_lat, radius_x, radius_y) {
+  indices <- get_zoom_indices(
+    get_domain(x), centre_lon, centre_lat, radius_x, radius_y
+  )
+  do.call(geo_subgrid, c(list(x = x), indices))
+}
+
+#' @export
+geo_zoom.geodomain <- geo_zoom.geofield
+
+#' @export
+geo_zoom.harp_geolist <- geo_zoom.geofield
+
+#' @export
+geo_zoom.harp_grid_df <- function(
+    x, centre_lon, centre_lat, radius_x, radius_y
+) {
+
+  geolist_cols <- colnames(x)[which(sapply(x, is_geolist))]
+  indices <- lapply(
+    x[geolist_cols],
+    function(d) {
+      try(
+        geo_zoom(d, centre_lon, centre_lat, radius_x, radius_y),
+        silent = TRUE
+      )
+    }
+  )
+  error_cols <- which(vapply(indices, inherits, logical(1), "try-error"))
+  if (length(error_cols) > 0) {
+    error_col_names <- geolist_cols[error_cols]
+    invisible(mapply(
+      function(col, err) {cli::cli_alert(col); cat(err, "\n")},
+      error_col_names,
+      indices[error_cols]
+    ))
+    cli::cli_abort(c(
+      "Errors reported for some columns in data frame:",
+      "x" = "{.var {error_col_names}}."
+    ))
+  }
+
+  dplyr::mutate(
+    x,
+    dplyr::across(
+      geolist_cols,
+      ~geo_zoom(.x, centre_lon, centre_lat, radius_x, radius_y)
+    )
+  )
+
+}
+
+#####################################################
+# Cross section of a grid (one vertical level only) #
+#####################################################
+
+#' Title
+#'
+#' @param x
+#' @param a
+#' @param b
+#' @param n
+#' @param method
+#' @param weights
+#' @param keep_weights
+#'
+#' @return
+#' @export
+#'
+#' @examples
+geo_xsection <- function(
+    x,
+    p1,
+    p2,
+    n            = 100,
+    method       = c("bilinear", "nearest", "bicubic"),
+    weights      = NULL,
+    keep_weights = FALSE
+) {
+  UseMethod("geo_xsection")
+}
+
+#' @export
+geo_xsection.geofield <- function(
+    x,
+    p1,
+    p2,
+    n            = 100,
+    method       = c("bilinear", "nearest", "bicubic"),
+    weights      = NULL,
+    keep_weights = FALSE
+) {
+
+  if (is.null(weights)) {
+    invisible(lapply(list(p1, p2, n), check_numeric))
+
+    p1 <- correct_length(p1, "p1", 2)
+    p2 <- correct_length(p2, "p2", 2)
+    n  <- correct_length(round_to_integer(n, "n"), "n", 1)
+
+    dom     <- get_domain(x)
+    weights <- geo_weights_xsection(dom, p1, p2, n, method)
+  }
+
+  res <- geo_points(
+    x, weights = weights, method = method, keep_weights = keep_weights
+  )
+
+  colnames(res)[colnames(res) == "point_data"] <- "xsection_data"
+
+  res
+
+}
+
+#' @export
+geo_xsection.harp_geolist <- function(
+    x,
+    p1,
+    p2,
+    n            = 100,
+    method       = c("bilinear", "nearest", "bicubic"),
+    weights      = NULL,
+    keep_weights = FALSE
+) {
+
+  if (is.null(weights)) {
+    invisible(lapply(list(p1, p2, n), check_numeric))
+
+    a <- correct_length(p1, "a", 2)
+    b <- correct_length(p2, "b", 2)
+    n <- correct_length(round_to_integer(n, "n"), "n", 1)
+
+    dom     <- get_domain(x)
+    weights <- geo_weights_xsection(dom, p1, p2, n, method)
+  }
+
+  res <- lapply(
+    x, geo_xsection, method = method, weights = weights, keep_weights = FALSE
+  )
+
+  if (keep_weights) {
+    attr(res, "weights") <- weights
+  }
+
+  structure(res, class = c("xslist", "list"), domain = get_domain(x))
+
+}
+
+#' @export
+geo_xsection.harp_grid_df <- function(
+    x,
+    p1,
+    p2,
+    n            = 100,
+    method       = c("bilinear", "nearest", "bicubic"),
+    weights      = NULL,
+    keep_weights = FALSE
+) {
+
+  geolist_cols <- colnames(x)[which(sapply(x, is_geolist))]
+
+  domains <- lapply(x[geolist_cols], get_domain)
+
+  weights <- lapply(
+    x[geolist_cols],
+    function(d) {
+      try(
+        geo_weights_xsection(get_domain(d), p1, p2, n, method),
+        silent = TRUE
+      )
+    }
+  )
+  error_cols <- which(vapply(weights, inherits, logical(1), "try-error"))
+  if (length(error_cols) > 0) {
+    error_col_names <- geolist_cols[error_cols]
+    invisible(mapply(
+      function(col, err) {cli::cli_alert(col); cat(err, "\n")},
+      error_col_names,
+      weights[error_cols]
+    ))
+    cli::cli_abort(c(
+      "Errors reported for some columns in data frame:",
+      "x" = "{.var {error_col_names}}."
+    ))
+  }
+  x[geolist_cols] <- mapply(
+    function(.x, .y) geo_xsection(.x, weights = .y),
+    x[geolist_cols], weights, SIMPLIFY = FALSE
+  )
+  x <- as_harp_df(x)
+  attr(x, "domain") <- domains
+  x
+}
+########################
+# Generalized function #
+########################
+
+#' Title
+#'
+#' @param x
+#' @param trans
+#' @param opts
+#'
+#' @return
+#' @export
+#'
+#' @examples
+geo_transform <- function(
+    x,
+    trans = c("points", "regrid", "subgrid", "zoom", "xsection"),
+    opts
+) {
+  UseMethod("geo_transform")
+}
+
+geo_transform_all <- function(
+    x,
+    trans = c("points", "regrid", "subgrid", "zoom", "xsection"),
+    opts
+) {
+  trans <- match.arg(trans)
+  trans_func <- get(paste0("geo_", trans))
+  if (missing(opts)) {
+    opts_fun <- get(paste0("geo_opts_", trans))
+    opts <- opts_fun()
+  }
+  do.call(trans_func, c(list(x = x), opts))
+}
+
+#' @export
+geo_transform.geofield <- geo_transform_all
+
+#' @export
+geo_transform.geodomain <- geo_transform_all
+
+#' @export
+geo_transform.harp_geolist <- geo_transform_all
+
+#' @export
+geo_transform.harp_grid_df <- geo_transform_all
+
+#################
+# Make a domain #
+#################
+
+check_numeric <- function(x, arg, caller = rlang::caller_env()) {
+  if (!is.numeric(x)) {
+    value <- as.character(x)
+    cli::cli_abort(c(
+      "{.arg {arg}} must be numeric.",
+      "x" = "{.arg {arg}} = {value}"
+    ), call = caller)
+  }
+}
+
+round_to_integer <- function(x, arg, caller = rlang::caller_env()) {
+  if (any(round(x) %% x != 0)) {
+    value <- as.character(x)
+    new_value <- as.character(round(x))
+    cli::cli_warn(c(
+      "{.arg {arg}} should be an integer:",
+      "i" = "Rounding {.arg {arg}} = {value} to {new_value}"
+    ))
+    x <- round(x)
+  }
+  x
+}
+
+correct_length <- function(x, arg, len, caller = rlang::caller_env()) {
+  if (length(x) < len) {
+    cli::cli_abort(c(
+      "{.arg {arg}} should be a vector with {len} {?element/elements}",
+      "x" = "{.arg {arg}} has {length(x)} {?element/elements}."
+    ), call = caller)
+  }
+  if (length(x) > len) {
+    cli::cli_warn(c(
+      "{.arg {arg}} should be a vector with {len} {?element/elements}",
+      "i" = "Truncating {.ar {arg}} to first {len} {?element/elements}"
+    ))
+    x <- x[1:len]
+  }
+  x
+}
+
+tranverse_mercator <- function(ref_lon, ref_lat, tilt) {
+  if (abs(ref_lat) < 0.01 && abs(tilt) < 0.01) {
+    return(list(proj = "merc", lon_0 = ref_lon))
+  }
+  if (abs(abs(tilt) - 90) < 1e-05) {
+    return(list(proj = "tmerc", lon_0 = ref_lon, lat_0 = ref_lat))
+  }
+  if (abs(tilt) < 1e-05) {
+    return(list(proj = "somerc", lon_0 = ref_lon, lat_0 = ref_lat))
+  }
+  if (tilt > 0) {
+    return(list(
+      proj = "omerc", lonc = ref_lon, lat_0 = ref_lat,
+      alpha = -90 + tilt, no_rot = NA
+    ))
+  }
+  list(
+    proj = "omerc", lonc = ref_lon, lat_0 = ref_lat,
+    alpha = 90 + tilt, no_rot = NA
+  )
+}
+
+#' Title
+#'
+#' @param proj
+#' @param centre_lon
+#' @param centre_lat
+#' @param nxny
+#' @param dxdy
+#' @param ref_lon
+#' @param ref_lat
+#' @param exey
+#' @param tilt
+#' @param R
+#' @param ...
+#'
+#' @return
+#' @export
+#'
+#' @examples
+make_domain <- function(
+    centre_lon,
+    centre_lat,
+    nxny,
+    dxdy,
+    proj = c(
+      "lambert", "lcc", "merc", "mercator", "omerc", "tmerc", "somerc", "lalo",
+      "longlat", "latlong", "ob_tran", "rot_longlat", "rot_latlong", "RotLatLon",
+      "stere", "stereo", "stereographic"
+    ),
+    ref_lon,
+    ref_lat,
+    exey = NULL,
+    tilt = 0,
+    R    = 6371229,
+    ...
+) {
+
+  proj <- match.arg(proj)
+  proj <- switch(
+    proj,
+    "lambert"       = "lcc",
+    "mercator"      = "merc",
+    "lalo"          = ,
+    "longlat"       = "latlong",
+    "omerc"         = ,
+    "somerc"        = "tmerc",
+    "rot_longlat"   = ,
+    "rot_latlong"   = ,
+    "RotLatLon"     = "ob_tran",
+    "stereo"        = ,
+    "stereogrpahic" = "stere",
+    proj
+  )
+
+  if (length(nxny) == 1) nxny <- rep(nxny, 2)
+  if (length(dxdy) == 1) dxdy <- rep(dxdy, 2)
+
+  check_numeric(nxny)
+  check_numeric(dxdy)
+
+  check_numeric(centre_lon)
+  check_numeric(centre_lat)
+
+  if (missing(ref_lon)) ref_lon <- centre_lon
+  if (missing(ref_lat)) ref_lat <- centre_lat
+
+  nxny <- correct_length(round_to_integer(nxny, "nxny"), "nxny", 2)
+  dxdy <- correct_length(dxdy, "dxdy", 2)
+
+  if (!is.null(exey)) {
+    if (length(exey) == 1) exey <- rep(exey, 2)
+    check_numeric(exey)
+    exey <- correct_length(round.POSIXt(exey))
+  }
+
+  projection <- switch(
+    proj,
+    "lcc" = list(
+      proj = proj, lon_0 = ref_lon,
+      lat_0 = ref_lat, lat_1 = ref_lat, lat_2 = ref_lat
+    ),
+    "merc" = list(
+      proj = proj, lon_0 = ref_lon
+    ),
+    "tmerc" = tranverse_mercator(ref_lon, ref_lat, tilt),
+    "latlong" = list(proj = proj),
+    "ob_tran" = list(
+      proj = proj, o_proj = "latlong",
+      o_lat_p = -ref_lat, o_lon_p = 0, lon_0 = ref_lon
+    ),
+    "stere" = list(proj = proj, lon_0 = ref_lon, lat_0 = ref_lat)
+  )
+
+  projection <- c(projection, list(R = R, ...))
+
+  res <- list(
+    projection = projection, nx = nxny[1], ny = nxny[2],
+    dx = dxdy[1], dy = dxdy[2], clonlat = c(centre_lon, centre_lat)
+  )
+
+  if (!is.null(exey)) {
+    res[["ex"]] <- exey[1]
+    res[["ey"]] <- exey[2]
+  }
+
+  res     <- structure(res, class = "geodomain")
+
+  corners <- meteogrid::DomainCorners(res)
+  res[["clonlat"]] <- NULL
+  res[["SW"]] <- unlist(corners[["SW"]], use.names = FALSE)
+  res[["NE"]] <- unlist(corners[["NE"]], use.names = FALSE)
+
+  res
+}
+
+#' @export
+geo_opts_points <- function(
+    points,
+    method       = c("bilinear", "nearest", "bicubic"),
+    mask         = NULL,
+    force        = FALSE,
+    weights      = NULL,
+    keep_weights = FALSE
+) {
+
+  if (missing(points) && is.null(weights)) {
+    cli::cli_alert_info("Using default points from `station_list`.")
+    points <- get("station_list")
+  }
+
+  method <- match.arg(method)
+
+  list(
+    points       = points,
+    method       = method,
+    mask         = mask,
+    force        = force,
+    weights      = weights,
+    keep_weights = keep_weights
+  )
+
+}
+
+#' @export
+geo_opts_regrid <- function(
+    new_grid,
+    method       = c("bilinear", "nearest", "bicubic"),
+    mask         = NULL,
+    new_mask     = NULL,
+    weights      = NULL,
+    keep_weights = FALSE
+) {
+
+  method <- match.arg(method)
+
+  list(
+    points       = points,
+    method       = method,
+    mask         = mask,
+    new_mask     = new_mask,
+    weights      = weights,
+    keep_weights = keep_weights
+  )
+
+}
+
+#' @export
+geo_opts_subgrid <- function(i1, i2, j1, j2) {
+  list(i1 = i1, i2 = i2, j1 = j1, j2 = j2)
+}
+
+#' @export
+geo_opts_zoom <- function(centre_lon, centre_lat, radius_x, radius_y) {
+  list(
+    centre_lon = centre_lon, centre_lat = centre_lat,
+    radius_x = radius_x, radius_y = radius_y
+  )
+}
+
+#' @export
+geo_opts_xsection <- function(
+    p1,
+    p2,
+    n            = 100,
+    method       = c("bilinear", "nearest", "bicubic"),
+    weights      = NULL,
+    keep_weights = FALSE
+) {
+
+  method <- match.arg(method)
+
+  list(
+    p1           = p1,
+    p2           = p2,
+    n            = n,
+    method       = method,
+    weights      = weights,
+    keep_weights = keep_weights
+  )
 }

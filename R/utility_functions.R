@@ -54,6 +54,24 @@ seq_pwr2 <- function(from, len, powers = TRUE) {
   2 ^ seq(log2(from), length.out = len)
 }
 
+#' Generate a doubled sequence
+#'
+#' \code{seq_double} generates a sequence of numbers where each value is double
+#' the previous value in the sequence.
+#'
+#' @param start The first number in the sequence.
+#' @param len The length of the sequence.
+#'
+#' @return A numeric vector
+#' @export
+#'
+#' @examples
+#' seq_double(1, 5)
+#' seq_double(0.125, 10)
+seq_double <- function(start, len) {
+  cumprod(c(start, rep(2, (len - 1))))
+}
+
 
 #' Piecewise pattern matching and replacement
 #'

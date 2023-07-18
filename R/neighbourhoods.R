@@ -77,26 +77,26 @@
 #' image(nbhd_smooth(z, 10, c(-0.5, 0.5), "between"), zlim = c(0, 1), col = heat.colors(255))
 #' image(nbhd_smooth(z, 10, c(-0.5, 0.5), "outside"), zlim = c(0, 1), col = heat.colors(255))
 nbhd_smooth <- function(
-  x,
-  radius,
-  threshold    = NA,
-  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
-  include_low  = TRUE,
-  include_high = TRUE,
-  boundary     = c("zero_pad", "missing")
+    x,
+    radius,
+    threshold    = NA,
+    comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+    include_low  = TRUE,
+    include_high = TRUE,
+    boundary     = c("zero_pad", "missing")
 ) {
   UseMethod("nbhd_smooth")
 }
 
 #' @export
 nbhd_smooth.geofield <- function(
-  x,
-  radius,
-  threshold    = NA,
-  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
-  include_low  = TRUE,
-  include_high = TRUE,
-  boundary     = c("zero_pad", "missing")
+    x,
+    radius,
+    threshold    = NA,
+    comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+    include_low  = TRUE,
+    include_high = TRUE,
+    boundary     = c("zero_pad", "missing")
 ) {
 
   comparator <- match.arg(comparator)
@@ -129,13 +129,13 @@ nbhd_smooth.geofield <- function(
 
 #' @export
 nbhd_smooth.array <- function(
-  x,
-  radius,
-  threshold    = NA,
-  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
-  include_low  = TRUE,
-  include_high = TRUE,
-  boundary     = c("zero_pad", "missing")
+    x,
+    radius,
+    threshold    = NA,
+    comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+    include_low  = TRUE,
+    include_high = TRUE,
+    boundary     = c("zero_pad", "missing")
 ) {
 
   comparator <- match.arg(comparator)
@@ -171,48 +171,46 @@ nbhd_smooth.array <- function(
 }
 
 #' @export
-nbhd_smooth.geolist <- function(
-  x,
-  radius,
-  threshold    = NA,
-  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
-  include_low  = TRUE,
-  include_high = TRUE,
-  boundary     = c("zero_pad", "missing")
+nbhd_smooth.harp_geolist <- function(
+    x,
+    radius,
+    threshold    = NA,
+    comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+    include_low  = TRUE,
+    include_high = TRUE,
+    boundary     = c("zero_pad", "missing")
 ) {
-  as_geolist(
-    lapply(
-      x,
-      nbhd_smooth,
-      radius,
-      threshold,
-      comparator,
-      include_low,
-      include_high,
-      boundary
-    )
+  glapply(
+    x,
+    nbhd_smooth,
+    radius,
+    threshold,
+    comparator,
+    include_low,
+    include_high,
+    boundary
   )
 }
 
 #' @rdname nbhd_smooth
 #' @export
 cumsum_2d <- function(
-  x,
-  threshold    = NA,
-  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
-  include_low  = TRUE,
-  include_high = TRUE
+    x,
+    threshold    = NA,
+    comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+    include_low  = TRUE,
+    include_high = TRUE
 ) {
   UseMethod("cumsum_2d")
 }
 
 #' @export
 cumsum_2d.geofield <- function(
-  x,
-  threshold    = NA,
-  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
-  include_low  = TRUE,
-  include_high = TRUE
+    x,
+    threshold    = NA,
+    comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+    include_low  = TRUE,
+    include_high = TRUE
 ) {
 
   comparator <- match.arg(comparator)
@@ -236,11 +234,11 @@ cumsum_2d.geofield <- function(
 
 #' @export
 cumsum_2d.array <- function(
-  x,
-  threshold    = NA,
-  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
-  include_low  = TRUE,
-  include_high = TRUE
+    x,
+    threshold    = NA,
+    comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+    include_low  = TRUE,
+    include_high = TRUE
 ) {
 
   comparator <- match.arg(comparator)
@@ -267,22 +265,20 @@ cumsum_2d.array <- function(
 }
 
 #' @export
-cumsum_2d.geolist <- function(
-  x,
-  threshold    = NA,
-  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
-  include_low  = TRUE,
-  include_high = TRUE
+cumsum_2d.harp_geolist <- function(
+    x,
+    threshold    = NA,
+    comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+    include_low  = TRUE,
+    include_high = TRUE
 ) {
-  as_geolist(
-    lapply(
-      x,
-      cumsum_2d,
-      threshold,
-      comparator,
-      include_low,
-      include_high
-    )
+  glapply(
+    x,
+    cumsum_2d,
+    threshold,
+    comparator,
+    include_low,
+    include_high
   )
 }
 
@@ -321,8 +317,46 @@ nbhd_smooth_cumsum.array <- function(
 }
 
 #' @export
-nbhd_smooth_cumsum.geolist <- function(
+nbhd_smooth_cumsum.harp_geolist <- function(
     x, radius, boundary = c("zero_pad", "missing")
 ) {
-  as_geolist(lapply(x, nbhd_smooth_cumsum, radius, boundary))
+  glapply(x, nbhd_smooth_cumsum, radius, boundary)
 }
+
+
+# pixel probabilities are just neighbourhood probabilities with a radius of 0
+#' Title
+#'
+#' @param x
+#' @param threshold
+#' @param comparator
+#' @param include_low
+#' @param include_high
+#'
+#' @return
+#' @export
+#'
+#' @examples
+ens_prob <- function(
+    x,
+    threshold    = 0,
+    comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+    include_low  = TRUE,
+    include_high = TRUE,
+    ...
+) {
+  UseMethod("ens_prob")
+}
+
+#' @export
+ens_prob.harp_geolist <- function(
+    x,
+    threshold    = 0,
+    comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+    include_low  = TRUE,
+    include_high = TRUE,
+    ...
+) {
+  mean(nbhd_smooth(x, 0, threshold, comparator, include_low, include_high))
+}
+

@@ -67,51 +67,59 @@ geol2 <- lapply(
 
 geo2 <- geol2[[1]]
 
-test_that("as_geolist can create geolists from lists and geofields", {
+test_that("geolist can create geolists from lists and geofields", {
   expect_equal(
-    as_geolist(geol1),
-    structure(geol1, class = c("geolist", "list"), domain = dom1)
+    geolist(geol1),
+    structure(geol1, class = c(
+      "harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"
+    ), domain = dom1, ptype = harpCore:::new_geofield())
   )
   expect_equal(
-    as_geolist(geol2),
-    structure(geol2, class = c("geolist", "list"), domain = dom2)
+    geolist(geol2),
+    structure(geol2, class = c(
+      "harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"
+    ), domain = dom2, ptype = harpCore:::new_geofield())
   )
   expect_equal(
-    as_geolist(geo1, geo1),
-    structure(list(geo1, geo1), class = c("geolist", "list"), domain = dom1)
+    geolist(geo1, geo1),
+    structure(list(geo1, geo1), class = c(
+      "harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"
+    ), domain = dom1, ptype = harpCore:::new_geofield())
   )
   expect_equal(
-    as_geolist(geo2, geo2),
-    structure(list(geo2, geo2), class = c("geolist", "list"), domain = dom2)
+    geolist(geo2, geo2),
+    structure(list(geo2, geo2), class = c(
+      "harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"
+    ), domain = dom2, ptype = harpCore:::new_geofield())
   )
 })
 
-test_that("as_geolist output has correct length", {
-  expect_equal(length(as_geolist(geol1)), 10)
-  expect_equal(length(as_geolist(geol2)), 10)
-  expect_equal(length(as_geolist(c(geol1, geol1))), 20)
-  expect_equal(length(as_geolist(c(geol2, geol2))), 20)
-  expect_equal(length(as_geolist(geo1, geo1)), 2)
-  expect_equal(length(as_geolist(geo2, geo2)), 2)
+test_that("geolist output has correct length", {
+  expect_equal(length(geolist(geol1)), 10)
+  expect_equal(length(geolist(geol2)), 10)
+  expect_equal(length(geolist(c(geol1, geol1))), 20)
+  expect_equal(length(geolist(c(geol2, geol2))), 20)
+  expect_equal(length(geolist(geo1, geo1)), 2)
+  expect_equal(length(geolist(geo2, geo2)), 2)
 })
 
-test_that("as_geolist throws error when domains are different", {
+test_that("geolist throws error when domains are different", {
   expect_error(
-    as_geolist(geo1, geo2),
-    "All geofields must be on the same domain"
+    geolist(geo1, geo2),
+    "All geofields in a geolist must be on the same domain"
   )
   expect_error(
-    as_geolist(c(geol1, geol2)),
-    "All geofields must be on the same domain"
+    geolist(c(geol1, geol2)),
+    "All geofields in a geolist must be on the same domain"
   )
 })
 
-test_that("as_geolist throws error when inputs are not all geofields", {
-  expect_error(as_geolist(list(1, 2, 3)), "All ... must be geofields")
-  expect_error(as_geolist(1, 2, 3), "All ... must be geofields")
-  expect_error(as_geolist(list(geo1, 1)), "All ... must be geofields")
-  expect_error(as_geolist(geo1, 1), "All ... must be geofields")
-  expect_error(as_geolist(geo1, unclass(geo1)), "All ... must be geofields")
+test_that("geolist throws error when inputs are not all geofields", {
+  expect_error(geolist(list(1, 2, 3)), "All elements of a geolist must be geofields")
+  expect_error(geolist(1, 2, 3), "All elements of a geolist must be geofields")
+  expect_error(geolist(list(geo1, 1)), "All elements of a geolist must be geofields")
+  expect_error(geolist(geo1, 1), "All elements of a geolist must be geofields")
+  expect_error(geolist(geo1, unclass(geo1)), "All elements of a geolist must be geofields")
 })
 
 # function to make data to test cumulative math for geolists
@@ -120,19 +128,21 @@ test_cum <- function(.geolist, .d, .f) {
   for (i in 2:length(.geolist)) {
     res[[i]] <- .f(.geolist[[i]], res[[(i - 1)]])
   }
-  structure(res, class = c("geolist", "list"), domain = .d)
+  structure(res, class = c(
+    "harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"
+  ), domain = .d, ptype = harpCore:::new_geofield())
 }
 
 # test for cumulative math
 test_that("cumulative math methods work for geolists", {
-  expect_equal(cumsum(as_geolist(geol1)), test_cum(geol1, dom1, `+`))
-  expect_equal(cumprod(as_geolist(geol1)), test_cum(geol1, dom1, `*`))
-  expect_equal(cummin(as_geolist(geol1)), test_cum(geol1, dom1, pmin))
-  expect_equal(cummax(as_geolist(geol1)), test_cum(geol1, dom1, pmax))
-  expect_equal(cumsum(as_geolist(geol2)), test_cum(geol2, dom2, `+`))
-  expect_equal(cumprod(as_geolist(geol2)), test_cum(geol2, dom2, `*`))
-  expect_equal(cummin(as_geolist(geol2)), test_cum(geol2, dom2, pmin))
-  expect_equal(cummax(as_geolist(geol2)), test_cum(geol2, dom2, pmax))
+  expect_equal(cumsum(geolist(geol1)), test_cum(geol1, dom1, `+`))
+  expect_equal(cumprod(geolist(geol1)), test_cum(geol1, dom1, `*`))
+  expect_equal(cummin(geolist(geol1)), test_cum(geol1, dom1, pmin))
+  expect_equal(cummax(geolist(geol1)), test_cum(geol1, dom1, pmax))
+  expect_equal(cumsum(geolist(geol2)), test_cum(geol2, dom2, `+`))
+  expect_equal(cumprod(geolist(geol2)), test_cum(geol2, dom2, `*`))
+  expect_equal(cummin(geolist(geol2)), test_cum(geol2, dom2, pmin))
+  expect_equal(cummax(geolist(geol2)), test_cum(geol2, dom2, pmax))
 })
 
 # Special Ops methods for geofields
@@ -391,44 +401,38 @@ test_that("geofield ops for different domains", {
 })
 
 test_that("combining geofields with arrays", {
-  expect_error(
-    geo1 + unclass(geo1),
-    "geofields can only be combined with other geofields or scalars"
-  )
-  expect_error(
-    unclass(geo1) + geo1,
-    "geofields can only be combined with other geofields or scalars"
-  )
+  expect_equal(geo1 + unclass(geo1), geo1 + geo1)
+  expect_equal(unclass(geo1) + geo1, geo1 + geo1)
 })
 
 # Ops methods for geolists
 test_that("geolists on different domains throw an error", {
   expect_error(
-    as_geolist(geol1) + as_geolist(geol2),
-    "geolists must have the same domain"
+    geolist(geol1) + geolist(geol2),
+    "must be geolists with the same domain"
   )
   expect_error(
-    as_geolist(geol1) * as_geolist(geol2),
-    "geolists must have the same domain"
+    geolist(geol1) * geolist(geol2),
+    "must be geolists with the same domain"
   )
   expect_error(
-    as_geolist(geol1) / as_geolist(geol2),
-    "geolists must have the same domain"
+    geolist(geol1) / geolist(geol2),
+    "must be geolists with the same domain"
   )
   expect_error(
-    as_geolist(geol1) - as_geolist(geol2),
-    "geolists must have the same domain"
+    geolist(geol1) - geolist(geol2),
+    "must be geolists with the same domain"
   )
 })
 
 test_that("geolists of different length throw error", {
   expect_error(
-    as_geolist(geol1) + c(as_geolist(geol1), as_geolist(geol1)),
-    "geolists must have the same length"
+    geolist(geol1) + c(geolist(geol1), geolist(geol1)),
+    "not permitted"
   )
   expect_error(
-    as_geolist(geol2) + c(as_geolist(geol2), as_geolist(geol2)),
-    "geolists must have the same length"
+    geolist(geol2) + c(geolist(geol2), geolist(geol2)),
+    "not permitted"
   )
 })
 
@@ -437,79 +441,95 @@ geol4 <- lapply(geol2, function(x) x * runif(1))
 
 test_that("basic math with two geolists", {
   expect_equal(
-    as_geolist(geol1) + as_geolist(geol1),
+    geolist(geol1) + geolist(geol1),
     structure(
       mapply(`+`, geol1, geol1, SIMPLIFY = FALSE),
-      class = c("geolist", "list"), domain = dom1
+      class = c(
+        "harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"
+      ), domain = dom1, ptype = harpCore:::new_geofield()
     )
   )
   expect_equal(
-    as_geolist(geol2) + as_geolist(geol2),
+    geolist(geol2) + geolist(geol2),
     structure(
       mapply(`+`, geol2, geol2, SIMPLIFY = FALSE),
-      class = c("geolist", "list"), domain = dom2
+      class = c(
+        "harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"
+      ), domain = dom2, ptype = harpCore:::new_geofield()
     )
   )
   expect_equal(
-    as_geolist(geol1) + as_geolist(geol1),
-    as_geolist(geol1) * 2
+    geolist(geol1) + geolist(geol1),
+    geolist(geol1) * 2
   )
   expect_equal(
-    as_geolist(geol2) + as_geolist(geol2),
-    as_geolist(geol2) * 2
+    geolist(geol2) + geolist(geol2),
+    geolist(geol2) * 2
   )
   expect_equal(
-    as_geolist(geol1) + as_geolist(geol1) + as_geolist(geol1),
-    as_geolist(geol1) * 3
+    geolist(geol1) + geolist(geol1) + geolist(geol1),
+    geolist(geol1) * 3
   )
   expect_equal(
-    as_geolist(geol1) - as_geolist(geol3),
+    geolist(geol1) - geolist(geol3),
     structure(
       mapply(`-`, geol1, geol3, SIMPLIFY = FALSE),
-      class = c("geolist", "list"), domain = dom1
+      class = c(
+        "harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"
+      ), domain = dom1, ptype = harpCore:::new_geofield()
     )
   )
   expect_equal(
-    as_geolist(geol2) - as_geolist(geol4),
+    geolist(geol2) - geolist(geol4),
     structure(
       mapply(`-`, geol2, geol4, SIMPLIFY = FALSE),
-      class = c("geolist", "list"), domain = dom2
+      class = c(
+        "harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"
+      ), domain = dom2, ptype = harpCore:::new_geofield()
     )
   )
   expect_equal(
-    as_geolist(geol1) * as_geolist(geol3),
+    geolist(geol1) * geolist(geol3),
     structure(
       mapply(`*`, geol1, geol3, SIMPLIFY = FALSE),
-      class = c("geolist", "list"), domain = dom1
+      class = c(
+        "harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"
+      ), domain = dom1, ptype = harpCore:::new_geofield()
     )
   )
   expect_equal(
-    as_geolist(geol2) * as_geolist(geol4),
+    geolist(geol2) * geolist(geol4),
     structure(
       mapply(`*`, geol2, geol4, SIMPLIFY = FALSE),
-      class = c("geolist", "list"), domain = dom2
+      class = c(
+        "harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"
+      ), domain = dom2, ptype = harpCore:::new_geofield()
     )
   )
   expect_equal(
-    as_geolist(geol1) * as_geolist(geol1),
-    as_geolist(geol1) ^ 2
+    geolist(geol1) * geolist(geol1),
+    geolist(geol1) ^ 2
   )
   expect_equal(
-    as_geolist(geol2) * as_geolist(geol2),
-    as_geolist(geol2) ^ 2
+    geolist(geol2) * geolist(geol2),
+    geolist(geol2) ^ 2
   )
   expect_equal(
-    as_geolist(geol1) / as_geolist(geol3),
+    geolist(geol1) / geolist(geol3),
     structure(
       mapply(`/`, geol1, geol3, SIMPLIFY = FALSE),
-      class = c("geolist", "list"), domain = dom1
+      class = c(
+        "harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"
+      ), domain = dom1, ptype = harpCore:::new_geofield()
     )
   )
   expect_equal(
-    as_geolist(geol2) / as_geolist(geol4),
+    geolist(geol2) / geolist(geol4),
     structure(
       mapply(`/`, geol2, geol4, SIMPLIFY = FALSE),
-      class = c("geolist", "list"), domain = dom2
+      class = c(
+        "harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"
+      ), domain = dom2, ptype = harpCore:::new_geofield()
     )
   )
 })
@@ -579,16 +599,16 @@ lgeol_all <- meteogrid::as.geofield(
 )
 
 test_that("Summary methods for geolists", {
-  expect_equal(sum(as_geolist(geol1)), sum_geol1)
-  expect_equal(sum(as_geolist(geol2)), sum_geol2)
-  expect_equal(prod(as_geolist(geol1)), prod_geol1)
-  expect_equal(prod(as_geolist(geol2)), prod_geol2)
-  expect_equal(min(as_geolist(geol1)), min_geol1)
-  expect_equal(min(as_geolist(geol2)), min_geol2)
-  expect_equal(max(as_geolist(geol1)), max_geol1)
-  expect_equal(max(as_geolist(geol2)), max_geol2)
-  expect_equal(any(as_geolist(lgeol)), lgeol_any)
-  expect_equal(all(as_geolist(lgeol)), lgeol_all)
+  expect_equal(sum(geolist(geol1)), geolist(sum_geol1))
+  expect_equal(sum(geolist(geol2)), geolist(sum_geol2))
+  expect_equal(prod(geolist(geol1)), geolist(prod_geol1))
+  expect_equal(prod(geolist(geol2)), geolist(prod_geol2))
+  expect_equal(min(geolist(geol1)), geolist(min_geol1))
+  expect_equal(min(geolist(geol2)), geolist(min_geol2))
+  expect_equal(max(geolist(geol1)), geolist(max_geol1))
+  expect_equal(max(geolist(geol2)), geolist(max_geol2))
+  expect_equal(any(geolist(lgeol)), geolist(lgeol_any))
+  expect_equal(all(geolist(lgeol)), geolist(lgeol_all))
 })
 
 geol1m <- geol1
@@ -698,27 +718,27 @@ lgeol_all_na.rm <- meteogrid::as.geofield(
 
 
 test_that("Summary methods for geolists with missing values", {
-  expect_equal(sum(as_geolist(geol1m)), sum_geol1_na)
-  expect_equal(sum(as_geolist(geol2m)), sum_geol2_na)
-  expect_equal(prod(as_geolist(geol1m)), prod_geol1_na)
-  expect_equal(prod(as_geolist(geol2m)), prod_geol2_na)
-  expect_equal(min(as_geolist(geol1m)), min_geol1_na)
-  expect_equal(min(as_geolist(geol2m)), min_geol2_na)
-  expect_equal(max(as_geolist(geol1m)), max_geol1_na)
-  expect_equal(max(as_geolist(geol2m)), max_geol2_na)
-  expect_equal(any(as_geolist(lgeolm)), lgeol_any_na)
-  expect_equal(all(as_geolist(lgeolm)), lgeol_all_na)
+  expect_equal(sum(geolist(geol1m)), geolist(sum_geol1_na))
+  expect_equal(sum(geolist(geol2m)), geolist(sum_geol2_na))
+  expect_equal(prod(geolist(geol1m)), geolist(prod_geol1_na))
+  expect_equal(prod(geolist(geol2m)), geolist(prod_geol2_na))
+  expect_equal(min(geolist(geol1m)), geolist(min_geol1_na))
+  expect_equal(min(geolist(geol2m)), geolist(min_geol2_na))
+  expect_equal(max(geolist(geol1m)), geolist(max_geol1_na))
+  expect_equal(max(geolist(geol2m)), geolist(max_geol2_na))
+  expect_equal(any(geolist(lgeolm)), geolist(lgeol_any_na))
+  expect_equal(all(geolist(lgeolm)), geolist(lgeol_all_na))
 
-  expect_equal(sum(as_geolist(geol1m), na.rm = TRUE), sum_geol1_na.rm)
-  expect_equal(sum(as_geolist(geol2m), na.rm = TRUE), sum_geol2_na.rm)
-  expect_equal(prod(as_geolist(geol1m), na.rm = TRUE), prod_geol1_na.rm)
-  expect_equal(prod(as_geolist(geol2m), na.rm = TRUE), prod_geol2_na.rm)
-  expect_equal(min(as_geolist(geol1m), na.rm = TRUE), min_geol1_na.rm)
-  expect_equal(min(as_geolist(geol2m), na.rm = TRUE), min_geol2_na.rm)
-  expect_equal(max(as_geolist(geol1m), na.rm = TRUE), max_geol1_na.rm)
-  expect_equal(max(as_geolist(geol2m), na.rm = TRUE), max_geol2_na.rm)
-  expect_equal(any(as_geolist(lgeolm), na.rm = TRUE), lgeol_any_na.rm)
-  expect_equal(all(as_geolist(lgeolm), na.rm = TRUE), lgeol_all_na.rm)
+  expect_equal(sum(geolist(geol1m), na.rm = TRUE), geolist(sum_geol1_na.rm))
+  expect_equal(sum(geolist(geol2m), na.rm = TRUE), geolist(sum_geol2_na.rm))
+  expect_equal(prod(geolist(geol1m), na.rm = TRUE), geolist(prod_geol1_na.rm))
+  expect_equal(prod(geolist(geol2m), na.rm = TRUE), geolist(prod_geol2_na.rm))
+  expect_equal(min(geolist(geol1m), na.rm = TRUE), geolist(min_geol1_na.rm))
+  expect_equal(min(geolist(geol2m), na.rm = TRUE), geolist(min_geol2_na.rm))
+  expect_equal(max(geolist(geol1m), na.rm = TRUE), geolist(max_geol1_na.rm))
+  expect_equal(max(geolist(geol2m), na.rm = TRUE), geolist(max_geol2_na.rm))
+  expect_equal(any(geolist(lgeolm), na.rm = TRUE), geolist(lgeol_any_na.rm))
+  expect_equal(all(geolist(lgeolm), na.rm = TRUE), geolist(lgeol_all_na.rm))
 })
 
 test_that("check for NAs in geofields and geolists", {
@@ -727,14 +747,15 @@ test_that("check for NAs in geofields and geolists", {
     meteogrid::as.geofield(array(c(FALSE, TRUE, FALSE, FALSE), c(2, 2)), domain = ldom)
   )
   expect_equal(
-    is.na(as_geolist(lgeolm)),
+    is.na(geolist(lgeolm)),
     structure(
       list(
         meteogrid::as.geofield(array(c(FALSE, TRUE, FALSE, FALSE), c(2, 2)), domain = ldom),
         meteogrid::as.geofield(array(c(FALSE, TRUE, FALSE, FALSE), c(2, 2)), domain = ldom),
         meteogrid::as.geofield(array(c(FALSE, TRUE, FALSE, TRUE), c(2, 2)), domain = ldom)
       ),
-      class = c("geolist", "list"), domain = ldom
+      class = c("harp_geolist", "vctrs_list_of", "vctrs_vctr", "list"),
+      domain = ldom, ptype = harpCore:::new_geofield()
     )
   )
 })
@@ -843,65 +864,65 @@ geols_var_na.rm <- meteogrid::as.geofield(
 
 
 test_that("basic stats summaries of geolists", {
-  expect_equal(mean(as_geolist(geols)), geols_mean)
-  expect_equal(std_dev(as_geolist(geols)), geols_sd)
-  expect_equal(variance(as_geolist(geols)), geols_var)
-  expect_equal(mean(as_geolist(geols_na)), geols_mean_na)
-  expect_equal(std_dev(as_geolist(geols_na)), geols_sd_na)
-  expect_equal(variance(as_geolist(geols_na)), geols_var_na)
-  expect_equal(mean(as_geolist(geols_na), na.rm = TRUE), geols_mean_na.rm)
-  expect_equal(std_dev(as_geolist(geols_na), na.rm = TRUE), geols_sd_na.rm)
-  expect_equal(variance(as_geolist(geols_na), na.rm = TRUE), geols_var_na.rm)
+  expect_equal(mean(geolist(geols)), geolist(geols_mean))
+  expect_equal(std_dev(geolist(geols)), geolist(geols_sd))
+  expect_equal(variance(geolist(geols)), geolist(geols_var))
+  expect_equal(mean(geolist(geols_na)), geolist(geols_mean_na))
+  expect_equal(std_dev(geolist(geols_na)), geolist(geols_sd_na))
+  expect_equal(variance(geolist(geols_na)), geolist(geols_var_na))
+  expect_equal(mean(geolist(geols_na), na.rm = TRUE), geolist(geols_mean_na.rm))
+  expect_equal(std_dev(geolist(geols_na), na.rm = TRUE), geolist(geols_sd_na.rm))
+  expect_equal(variance(geolist(geols_na), na.rm = TRUE), geolist(geols_var_na.rm))
 })
 
 # diff method for geolists
-diff1 <- as_geolist(list(
+diff1 <- list(
   geols[[2]] - geols[[1]],
   geols[[3]] - geols[[2]],
   geols[[4]] - geols[[3]]
-))
+)
 
-diff2 <- as_geolist(list(
+diff2 <- list(
   geols[[3]] - geols[[1]],
   geols[[4]] - geols[[2]]
-))
+)
 
-diff3 <- as_geolist(list(
+diff3 <- list(
   geols[[4]] - geols[[1]]
-))
+)
 
-diff_neg1 <- as_geolist(list(
+diff_neg1 <- list(
   geols[[1]] - geols[[2]],
   geols[[2]] - geols[[3]],
   geols[[3]] - geols[[4]]
-))
+)
 
-diff_neg2 <- as_geolist(list(
+diff_neg2 <- list(
   geols[[1]] - geols[[3]],
   geols[[2]] - geols[[4]]
-))
+)
 
-diff_neg3 <- as_geolist(list(
+diff_neg3 <- list(
   geols[[1]] - geols[[4]]
-))
+)
 
-diff_nas <- as_geolist(
-  list(meteogrid::as.geofield(array(rep(NA_real_, 4), c(2, 2)), domain = ldom))
+diff_nas <- list(
+  harpCore:::new_geofield()
 )
 
 test_that("diff gives correct value for different lags", {
-  expect_equal(diff(as_geolist(geols), 0), as_geolist(geols))
-  expect_equal(diff(as_geolist(geols), 1), diff1)
-  expect_equal(diff(as_geolist(geols), 2), diff2)
-  expect_equal(diff(as_geolist(geols), 3), diff3)
-  expect_equal(diff(as_geolist(geols), -1), diff_neg1)
-  expect_equal(diff(as_geolist(geols), -2), diff_neg2)
-  expect_equal(diff(as_geolist(geols), -3), diff_neg3)
-  expect_equal(diff(as_geolist(geols), 1, trim = FALSE), c(diff_nas, diff1))
-  expect_equal(diff(as_geolist(geols), 2, trim = FALSE), c(diff_nas, diff_nas, diff2))
-  expect_equal(diff(as_geolist(geols), 3, trim = FALSE), c(diff_nas, diff_nas, diff_nas, diff3))
-  expect_equal(diff(as_geolist(geols), -1, trim = FALSE), c(diff_neg1, diff_nas))
-  expect_equal(diff(as_geolist(geols), -2, trim = FALSE), c(diff_neg2, diff_nas, diff_nas))
-  expect_equal(diff(as_geolist(geols), -3, trim = FALSE), c(diff_neg3, diff_nas, diff_nas, diff_nas))
-  expect_error(diff(as_geolist(geols), 4), "lag is too long")
+  expect_equal(diff(geolist(geols), 0), geolist(geols))
+  expect_equal(diff(geolist(geols), 1), geolist(diff1))
+  expect_equal(diff(geolist(geols), 2), geolist(diff2))
+  expect_equal(diff(geolist(geols), 3), geolist(diff3))
+  expect_equal(diff(geolist(geols), -1), geolist(diff_neg1))
+  expect_equal(diff(geolist(geols), -2), geolist(diff_neg2))
+  expect_equal(diff(geolist(geols), -3), geolist(diff_neg3))
+  expect_equal(diff(geolist(geols), 1, trim = FALSE), geolist(c(diff_nas, diff1)))
+  expect_equal(diff(geolist(geols), 2, trim = FALSE), geolist(c(diff_nas, diff_nas, diff2)))
+  expect_equal(diff(geolist(geols), 3, trim = FALSE), geolist(c(diff_nas, diff_nas, diff_nas, diff3)))
+  expect_equal(diff(geolist(geols), -1, trim = FALSE), geolist(c(diff_neg1, diff_nas)))
+  expect_equal(diff(geolist(geols), -2, trim = FALSE), geolist(c(diff_neg2, diff_nas, diff_nas)))
+  expect_equal(diff(geolist(geols), -3, trim = FALSE), geolist(c(diff_neg3, diff_nas, diff_nas, diff_nas)))
+  expect_error(diff(geolist(geols), 4), "`lag` is too long")
 })
