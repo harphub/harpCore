@@ -381,15 +381,58 @@ seq_dttm <- function(start_dttm, end_dttm, by = "1h") {
   as_str_dttm(seq(start_dttm, end_dttm, by_secs))
 }
 
+#' Convert a time period to seconds
+#'
+#' Convert number of minutes, hours, days or weeks into seconds. If \code{x} is
+#' numeric, it is assumed to be in hours.
+#'
+#' @param x A character or numeric vector. The units of the input is specified
+#'   by a single character:
+#'   \itemize{
+#'     \item{s} {seconds}
+#'     \item{m} {minutes}
+#'     \item{h} {hours}
+#'     \item{d} {days}
+#'     \item{w} {weeks}
+#'   }
+#'
+#' @return A named vector where the values are the number of seconds and the
+#'   names are the equivalent in the units given in the input
+#' @export
+#'
+#' @examples
+#' # Numeric inputs are assumed to be in hours
+#' to_seconds(c(0, 1, 2))
+#'
+#' # The same values given in seconds, minutes and explicitly hours
+#' to_seconds(c("0s", "3600s", "7200s"))
+#' to_seconds(c("0m", "60m", "120m"))
+#' to_seconds(c("0h", "1h", "2h"))
+#'
+#' # Units can be mixed
+#' to_seconds(c(paste0(24 * 7, "h"), "7d", "1w"))
 to_seconds <- function(x) {
-  if (is.numeric(x)) {
-    x <- paste0(x, "h")
+  UseMethod("to_seconds")
+}
+
+#' @export
+to_seconds.character <- function(x) {
+  num  <- try(as.numeric(substr(x, 1, nchar(x) - 1)))
+  if (inherits(num, "try-error")) {
+    to_seconds_error(x)
   }
-  num  <- as.numeric(substr(x, 1, nchar(x) - 1))
   mult <- time_multiplier(substr(x, nchar(x), nchar(x)))
+  if (any(is.na(mult))) {
+    to_seconds_error(x)
+  }
   result <- num * mult
   names(result) <- x
   result
+}
+
+#' @export
+to_seconds.numeric <- function(x) {
+  to_seconds(paste0(x, "h"))
 }
 
 time_multiplier <- Vectorize(function(x) {
@@ -403,3 +446,13 @@ time_multiplier <- Vectorize(function(x) {
     NA
   )
 })
+
+to_seconds_error <- function(x) {
+  valid_units = "`s`, `m`, `h`, `d`, or `w`"
+  cli::cli_abort(c(
+    "Cannot convert to seconds.",
+    "x" = "{.arg x} = {.var {x}} does not have the correct unit specifier.",
+    "i" = "{.arg x} should be a numeric value followed by {valid_units}."
+  ))
+
+}
