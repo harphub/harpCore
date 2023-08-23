@@ -1080,6 +1080,34 @@ ens_stats.harp_ens_point_df <- function(
 }
 
 #' @export
+ens_stats.harp_list <- function(
+  .fcst,
+  mean         = TRUE,
+  sd           = TRUE,
+  var          = FALSE,
+  min          = FALSE,
+  max          = FALSE,
+  median       = FALSE,
+  keep_members = FALSE,
+  ...
+) {
+  as_harp_list(
+    lapply(
+      .fcst,
+      ens_stats,
+      mean         = mean,
+      sd           = sd,
+      var          = var,
+      min          = min,
+      max          = max,
+      median       = median,
+      keep_members = keep_members,
+      ...
+    )
+  )
+}
+
+#' @export
 ens_prob.harp_ens_grid_df <- function(
   x,
   threshold    = 0,
@@ -1185,4 +1213,31 @@ ens_prob.harp_ens_point_df <- function(
 
   res
 
+}
+
+#' @export
+ens_prob.harp_list <- function(
+  x,
+  threshold    = 0,
+  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+  include_low  = TRUE,
+  include_high = TRUE,
+  keep_members = FALSE,
+  ...
+) {
+
+  comparator <- match.arg(comparator)
+
+  as_harp_list(
+    lapply(
+      x,
+      ens_prob,
+      threshold    = threshold,
+      comparator   = comparator,
+      include_low  = include_low,
+      include_high = include_high,
+      keep_members = keep_members,
+      ...
+    )
+  )
 }
