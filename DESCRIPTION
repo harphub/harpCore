@@ -1,6 +1,6 @@
 Package: harpCore
 Title: Core functions and methods for the harp ecosystem
-Version: 0.0.0.9000
+Version: 0.1.1
 Authors@R: 
     person("Andrew", "Singleton", , "andrewts@met.no", role = c("aut", "cre"))
 Description: harp is an collection of packages for reading, analysing and 
