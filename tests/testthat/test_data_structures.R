@@ -152,3 +152,99 @@ test_that("Single square bracket extracts a harp_list", {
   )
 })
 
+test_that("as_det returns the correct member", {
+  expect_equal(
+    as_det(ens_point_df, 1),
+    structure(
+      dplyr::transmute(
+        ens_point_df,
+        fcst_model = "point",
+        .data$fcst_dttm,
+        .data$lead_time,
+        .data$valid_dttm,
+        .data$SID,
+        fcst = .data$point_mbr001
+      ),
+      class = gsub("harp_ens_point_df", "harp_det_point_df", class(ens_point_df))
+    )
+  )
+  expect_equal(
+    as_det(ens_grid_df, 0),
+    structure(
+      dplyr::transmute(
+        ens_grid_df,
+        fcst_model = "grid",
+        .data$fcst_dttm,
+        .data$lead_time,
+        .data$valid_dttm,
+        fcst = .data$grid_mbr000
+      ),
+      class = gsub("harp_ens_grid_df", "harp_det_grid_df", class(ens_grid_df))
+    )
+  )
+  expect_equal(
+    as_det(ens_point_df, "point_mbr000"),
+    structure(
+      dplyr::transmute(
+        ens_point_df,
+        fcst_model = "point",
+        .data$fcst_dttm,
+        .data$lead_time,
+        .data$valid_dttm,
+        .data$SID,
+        fcst = .data$point_mbr000
+      ),
+      class = gsub("harp_ens_point_df", "harp_det_point_df", class(ens_point_df))
+    )
+  )
+  expect_equal(
+    as_det(ens_point_list, 0),
+    structure(
+      mapply(
+        function(x, y) {
+          mbr_name <- paste0(y, "_mbr000")
+          structure(
+            tibble::tibble(
+              fcst_model = y,
+              fcst_dttm = x$fcst_dttm,
+              lead_time = x$lead_time,
+              valid_dttm = x$valid_dttm,
+              SID = x$SID,
+              fcst = x[[mbr_name]]
+            ),
+            class = gsub("harp_ens_point_df", "harp_det_point_df", class(x))
+          )
+        },
+        ens_point_list,
+        names(ens_point_list),
+        SIMPLIFY = FALSE
+      ),
+      class = c("harp_list", "list")
+    )
+  )
+  expect_equal(
+    as_det(ens_grid_list, 0),
+    structure(
+      mapply(
+        function(x, y) {
+          mbr_name <- paste0(y, "_mbr000")
+          structure(
+            tibble::tibble(
+              fcst_model = y,
+              fcst_dttm = x$fcst_dttm,
+              lead_time = x$lead_time,
+              valid_dttm = x$valid_dttm,
+              fcst = x[[mbr_name]]
+            ),
+            class = gsub("harp_ens_grid_df", "harp_det_grid_df", class(x))
+          )
+        },
+        ens_grid_list,
+        names(ens_point_list),
+        SIMPLIFY = FALSE
+      ),
+      class = c("harp_list", "list")
+    )
+  )
+
+})

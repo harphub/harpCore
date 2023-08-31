@@ -251,5 +251,147 @@ c.harp_list <- function(x, ...) {
   as_harp_list(NextMethod())
 }
 
+#' Convert an ensemble forecast to deterministic.
+#'
+#' @param x A harp data frame or harp list
+#' @param member Does not need to be supplied if there is only one ensemble
+#'   member in `x`. Otherwise can be the member number, or the full name of
+#'   the member column to treat as deterministic.
+#' @param sub_model For multimodel ensembles there may be columns with the
+#'   same member number. Set to the name of the sub-model to select `member` for
+#'   that sub-model.
+#'
+#' @return A harp deterministic data frame.
+#' @export
+#'
+#' @examples
+#' as_det(ens_point_df, 0)
+#' as_det(ens_grid_df, 1)
+#' as_det(ens_point_list, 0)
+#'
+#' # Name the member column explicitly
+#' as_det(ens_point_df, "point_mbr000")
+as_det <- function(x, member = NULL, sub_model = NULL) {
+  UseMethod("as_det")
+}
 
+#' @export
+as_det.harp_ens_point_df <- function(x, member = NULL, sub_model = NULL) {
 
+  member_cols <- grep("_mbr[[:digit:]]{3}", colnames(x), value = TRUE)
+  num_members <- length(member_cols)
+
+  if (num_members == 0) {
+    cli::cli_abort(c(
+      "No ensemble members found in {.arg x}"
+    ))
+  }
+
+  if (num_members == 1) {
+    return(as_harp_df(
+      dplyr::rename_with(x, ~"forecast", dplyr::matches("_mbr[[:digit:]]{3}"))
+    ))
+  }
+
+  if (is.null(member)) {
+    cli::cli_abort(c(
+      "Must specify a member for enesmbles with more than 1 member:",
+      "i" = "There {?is/are} are {num_members} member{?s} in {.arg x}.",
+      "x" = "{.arg member} is set to NULL."
+    ))
+  }
+
+  non_member_cols <- grep(
+    "_mbr[[:digit:]]{3}", colnames(x), value = TRUE, invert = TRUE
+  )
+
+  if (is.numeric(member)) {
+    member_regex <- paste0("_mbr", formatC(member, width = 3, flag = "0"))
+  }
+  if (is.character(member)) {
+    member_regex <- member
+  }
+
+  len <- length(member)
+  if (!exists("member_regex") || len > 1) {
+    cli::cli_abort(c(
+      "{.arg member} must be length 1 numeric or character vector.",
+      "x" = "You supplied a length {len} {.cls {class(member)}} vector."
+    ))
+  }
+
+  member_cols <- grep(member_regex, colnames(x), value = TRUE)
+  num_members <- length(member_cols)
+
+  if (num_members > 1) {
+    if (is.null(sub_model)) {
+      cli::cli_abort(c(
+        "More than 1 member matched in {.arg x}:",
+        "x" = "{member_regex} matches columns {member_cols}.",
+        "i" = paste(
+          "Try setting {.arg sub_model},",
+          "or {.arg member} as the full name of the column."
+        )
+      ))
+    }
+    member_regex <- paste0(sub_model, member_regex)
+    member_cols  <- grep(member_regex, colnames(x), value = TRUE)
+    num_members  <- length(member_cols)
+    if (num_members > 1) {
+      cli::cli_abort(c(
+        "More than 1 member matched in {.arg x}:",
+        "x" = "{member_regex} matches columns {member_cols}.",
+        "i" = paste(
+          "Try setting {.arg member} as the full name of the column."
+        )
+      ))
+    }
+  }
+
+  if (num_members == 0) {
+    cli::cli_abort(c(
+      "Must select an existing member.",
+      "x" = "\"{member_regex}\" not matched in {.arg x}."
+    ))
+  }
+
+  fcst_model <- paste0(
+    gsub("_mbr[[:digit:]]{3}[[:graph:]]*", "", member_cols), "_det"
+  )
+
+  as_harp_df(
+    dplyr::select(
+      x,
+      dplyr::all_of(non_member_cols),
+      {{fcst_model}} := dplyr::all_of(member_cols)
+    )
+  )
+
+}
+
+#' @export
+as_det.harp_ens_grid_df <- as_det.harp_ens_point_df
+
+#' @export
+as_det.harp_list <- function(x, member = NULL, sub_model = NULL) {
+  ens_df <- which(
+    vapply(
+      x,
+      function(v) inherits(v, "harp_ens_point_df") ||
+        inherits(v, "harp_ens_grid_df"),
+      logical(1)
+    )
+  )
+
+  if (length(ens_df) < 1) {
+    main_classes <- vapply(x, function(v) class(v)[1], character(1))
+
+    cli::cli_abort(c(
+      "No ensemble data found in {.arg x}.",
+      "i" = "{.arg x} contains entries with main classes {main_classes}"
+    ))
+  }
+
+  x[ens_df] <- lapply(x[ens_df], as_det, member, sub_model)
+  x
+}
