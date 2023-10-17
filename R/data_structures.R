@@ -288,12 +288,14 @@ as_det.harp_ens_point_df <- function(x, member = NULL, sub_model = NULL) {
   }
 
   if (num_members == 1) {
-    return(as_harp_df(
-      dplyr::rename_with(x, ~"forecast", dplyr::matches("_mbr[[:digit:]]{3}"))
-    ))
+    if (is.null(member)) {
+      member <- sub(
+        "[[:graph:]]*_(?=mbr[[:digit:]]{3})", "", member_cols, perl = TRUE
+      )
+    }
   }
 
-  if (is.null(member)) {
+  if (is.null(member) && num_members > 1) {
     cli::cli_abort(c(
       "Must specify a member for enesmbles with more than 1 member:",
       "i" = "There {?is/are} are {num_members} member{?s} in {.arg x}.",
