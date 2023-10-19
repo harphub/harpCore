@@ -324,39 +324,3 @@ nbhd_smooth_cumsum.harp_geolist <- function(
 }
 
 
-# pixel probabilities are just neighbourhood probabilities with a radius of 0
-#' Title
-#'
-#' @param x
-#' @param threshold
-#' @param comparator
-#' @param include_low
-#' @param include_high
-#'
-#' @return
-#' @export
-#'
-#' @examples
-ens_prob <- function(
-    x,
-    threshold    = 0,
-    comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
-    include_low  = TRUE,
-    include_high = TRUE,
-    ...
-) {
-  UseMethod("ens_prob")
-}
-
-#' @export
-ens_prob.harp_geolist <- function(
-    x,
-    threshold    = 0,
-    comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
-    include_low  = TRUE,
-    include_high = TRUE,
-    ...
-) {
-  mean(nbhd_smooth(x, 0, threshold, comparator, include_low, include_high))
-}
-

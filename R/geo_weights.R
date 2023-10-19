@@ -1,19 +1,60 @@
+#############################################################
+# Generalized function for computing transformation weights #
+#############################################################
+
+#' Compute interpolation weights for geographic transformations
+#'
+#' For repeated transformations from the same grid definition, it may be more
+#' efficient to compute the interpolation weights first and then compute the
+#' transformations with those weights. These functions are used to compute the
+#' interpolation weights, which can then be passed to the `geo_transform`
+#' function via the `opts` argument, or to an explicit `geo_<transformation>`
+#' function via the `weights argument`
+#'
+#' @inheritParams geo_transform
+#' @return The interpolation weights for the geographic transformation.
+#' @export
+geo_weights <- function(
+  x,
+  trans = c("points", "regrid", "xsection"),
+  opts
+) {
+  UseMethod("geo_weights")
+}
+
+geo_weights_all <- function(
+  x,
+  trans = c("points", "regrid", "subgrid", "zoom", "xsection"),
+  opts
+) {
+  trans <- match.arg(trans)
+  trans_func <- get(paste0("geo_weights_", trans))
+  if (missing(opts)) {
+    opts_fun <- get(paste0("geo_opts_", trans))
+    opts <- opts_fun()
+  }
+  do.call(trans_func, c(list(x = x), opts))
+}
+
+#' @export
+geo_weights.geofield <- geo_weights_all
+
+#' @export
+geo_weights.geodomain <- geo_weights_all
+
+#' @export
+geo_weights.harp_geolist <- geo_weights_all
+
+#' @export
+geo_weights.harp_grid_df <- geo_weights_all
+
 #######################
 # Point interpolation #
 #######################
 
-#' Title
-#'
-#' @param x
-#' @param points
-#' @param method
-#' @param mask
-#' @param force
-#'
-#' @return
+#' @inheritParams geo_transform
+#' @rdname geo_weights
 #' @export
-#'
-#' @examples
 geo_weights_points <- function(
   x,
   points,
@@ -119,18 +160,9 @@ geo_weights_points.harp_geolist <- function(
 # Interpolation to new grid #
 #############################
 
-#' Title
-#'
-#' @param x
-#' @param new_grid
-#' @param method
-#' @param mask
-#' @param new_mask
-#'
-#' @return
+#' @inheritParams geo_transform
+#' @rdname geo_weights
 #' @export
-#'
-#' @examples
 geo_weights_regrid <- function(
   x,
   new_grid,
@@ -187,18 +219,9 @@ geo_weights_regrid.geodomain <- function(
 # Cross section of a grid (one vertical level only) #
 #####################################################
 
-#' Title
-#'
-#' @param x
-#' @param p1
-#' @param b
-#' @param n
-#' @param method
-#'
-#' @return
+#' @inheritParams geo_transform
+#' @rdname geo_weights
 #' @export
-#'
-#' @examples
 geo_weights_xsection <- function(
     x,
     p1,

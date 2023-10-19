@@ -698,12 +698,28 @@ scale_param.harp_list <- function(x, scaling, new_units, mult = FALSE, ...) {
 
 #' Decumulate accumulated variables
 #'
-#' @param .data
-#' @param decum_time
-#' @param cols
-#' @param time_col
-#' @param group_col
-#' @param df_name
+#' Many models store accumulated values as the amount accumulated since the
+#' start of the forecast. `decum()` decumulates those values to specific time
+#' periods. Note that the time periods are overlapping, such that for hourly
+#' data a (for example) 6-hour accumulation will be calculated every hour for
+#' the previous 6 hours rather than in consecutive 6-hour windows.
+#'
+#' @param .data A `harp_df` data fram or `harp_list`
+#' @param decum_time The time period to which to decumulate the data. If
+#'   numeric, it is considered to be in hours, otherwise a string with a number
+#'   followed by a unit. Units can be "s", for seconds; "m", for minutes; "h",
+#'   for hours; or "d", for days.
+#' @param cols Columns for which to do the decumulation. Uses the same semantics
+#'   as \code{\link[dplyr]{select}}.
+#' @param time_col The time column to use for calculating decumulation windows.
+#'   Uses the same semantics as \code{\link[dplyr]{select}}.
+#' @param group_col The columns to group the output by. Uses the same semantics
+#'   as \code{\link[dplyr]{select}}.
+#' @param df_name The name of the data frame - only really used to generate
+#'   error messages.
+#'
+#' @return An object of the same class as `.data` containing the decumulated
+#'   values.
 #' @export
 decum <- function(.data, decum_time, cols, time_col, group_col, df_name = NULL, ...) {
   UseMethod("decum")
@@ -921,21 +937,34 @@ decum_df <- function(
 }
 
 
-#' Title
+#' Compute basic ensemble statistics
 #'
-#' @param .fcst
-#' @param mean
-#' @param sd
-#' @param var
-#' @param min
-#' @param max
-#' @param keep_members
-#' @param ...
+#' Given a data frame of ensemble forecasts the ensemble mean, the ensemble
+#' standard deviation (spread), ensemble variance, ensemble minimum, and
+#' ensemble are calculated.
 #'
-#' @return
+#' By default only the ensemble mean and standard deviation are computed.
+#'
+#' @param .fcst A `harp_ens_grid_df` or `harp_ens_point_df` data frame, or a
+#'   `harp_list` containing data frames with those classes.
+#' @param mean Logical. Whether to compute the ensemble mean.
+#' @param sd Logical. Whether to compute the ensemble standard deviation.
+#' @param var Logical. Whether to compute the ensemble variance.
+#' @param min Logical. Whether to compute the ensemble minumum.
+#' @param max Logical. Whether to compute the ensemble maximum.
+#' @param keep_members Logical. Whether to keep the ensemble members in the
+#'   returned object. The default is to only return the statistics.
+#' @param ... Not used.
+#'
+#' @return An object of the same class as `.fcst` with columns for the ensemble
+#'   statistics
 #' @export
 #'
 #' @examples
+#' ens_stats(ens_point_df)
+#' ens_stats(ens_point_df, keep_members = TRUE)
+#' ens_stats(ens_point_df, var = TRUE, min = TRUE, max = TRUE)
+#' ens_stats(ens_grid_list)
 ens_stats <- function(
   .fcst,
   mean         = TRUE,
@@ -1107,6 +1136,59 @@ ens_stats.harp_list <- function(
   )
 }
 
+#' Compute the ensemble probability for a threshold
+#'
+#' The probability for a threshold for an ensemble is computed. This is by
+#' default for threshold exceedence (P(fcst >= threshold)), but the probability
+#' for being below the threshold, or between or outside of two thresholds can
+#' also be calculated.
+#'
+#' Note that when a `geolist` is passed to the function, each element of the
+#' `geolist` is assumed to be an ensemble member.
+#'
+#' @param x A `harp_ens_grid_df` or `harp_ens_point_df` data frame, a `geolist`,
+#'   or a `harp_list` containing ensemble data frames.
+#' @inheritParams nbhd_smooth
+#' @return An object of the same class as `x` with the probabilities computed
+#' @export
+#'
+#' @examples
+#' p_ge_0.5 <- ens_prob(ens_grid_df, 0.5)
+#' image(p_ge_0.5$prob_ge_0.5[[1]])
+#'
+#' p_le_0.1 <- ens_prob(ens_grid_df, 0.1, comparator = "le")
+#' image(p_le_0.1$prob_le_0.1[[1]])
+#'
+#' p_btw_0.25_0.75 <- ens_prob(
+#'   ens_grid_df, c(0.25, 0.75), comparator = "between"
+#' )
+#' image(p_btw_0.25_0.75$prob_between_0.25_0.75[[1]])
+ens_prob <- function(
+  x,
+  threshold    = 0,
+  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+  include_low  = TRUE,
+  include_high = TRUE,
+  ...
+) {
+  UseMethod("ens_prob")
+}
+
+#' @export
+ens_prob.harp_geolist <- function(
+    x,
+  threshold    = 0,
+  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+  include_low  = TRUE,
+  include_high = TRUE,
+  ...
+) {
+  mean(nbhd_smooth(x, 0, threshold, comparator, include_low, include_high))
+}
+
+
+
+#' @inheritParams geo_transform
 #' @export
 ens_prob.harp_ens_grid_df <- function(
   x,
@@ -1135,7 +1217,10 @@ ens_prob.harp_ens_grid_df <- function(
   )
 
   colnames(res)[colnames(res) == "prob"] <- paste(
-    "prob", comparator, threshold, sep = "_"
+    "prob",
+    comparator,
+    paste(threshold,  collapse = "_"),
+    sep = "_"
   )
 
   if (length(unique(res[["sub_model"]])) < 2) {

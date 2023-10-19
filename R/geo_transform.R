@@ -2,20 +2,19 @@
 # Interpolation to points #
 ###########################
 
-#' Title
+#' @rdname geo_transform
+#' @param points A data frame of geographic points to which to interpolate the
+#'   gridded data. The data frame must include the columns "SID" for a unique id
+#'   for the point, "lon" for the longitude of the point in decimal degrees and
+#'   "lat" for the latitude of the point in decimal degrees. The data frame can
+#'   contain other columns, which will be retained in the output.
+#' @param force For interpolations that include a mask, it is possible that a
+#'   point will be surrounded by 4 masked points. In this case the mask will be
+#'   ignored and all 4 points used in the interpolation (the default). Set
+#'   `force = TRUE` to force the mask to be applied and set the interpolated to
+#'   `NA`.
 #'
-#' @param x
-#' @param points
-#' @param method
-#' @param mask
-#' @param force
-#' @param weights
-#' @param keep_weights
-#'
-#' @return
 #' @export
-#'
-#' @examples
 geo_points <- function(
     x,
     points,
@@ -211,20 +210,13 @@ geo_points.harp_grid_df <- function(
 # Interpolation to new grid #
 #############################
 
-#' Title
+#' @rdname geo_transform
+#' @param new_grid A `geofield` or `geodomain` on the grid that `x` should be
+#'   regridded to. \link{define_domain} can be used to define a new `geodomain`.
+#' @param new_mask A `geofield` on the same grid as `new_grid` with grid points
+#'   that should not be interpolated to set to 0 or FALSE.
 #'
-#' @param x
-#' @param new_grid
-#' @param method
-#' @param mask
-#' @param new_mask
-#' @param weights
-#' @param keep_weights
-#'
-#' @return
 #' @export
-#'
-#' @examples
 geo_regrid <- function(
     x,
     new_grid,
@@ -423,18 +415,13 @@ geo_regrid.harp_grid_df <- function(
 # Extraction of a subgrid #
 ###########################
 
-#' Title
+#' @rdname geo_transform
+#' @param i1 The x index of the western side of the sub domain.
+#' @param i2 The x index of the eastern side of the sub domain.
+#' @param j1 The y index of the southern side of the sub domain.
+#' @param j2 The y index of the northern side of the sub domain.
 #'
-#' @param x
-#' @param i1
-#' @param i2
-#' @param j1
-#' @param j2
-#'
-#' @return
 #' @export
-#'
-#' @examples
 geo_subgrid <- function(x, i1, i2, j1, j2) {
   UseMethod("geo_subgrid")
 }
@@ -546,19 +533,22 @@ geo_subgrid.harp_grid_df <- function(x, i1, i2, j1, j2) {
 # Zoom in to a grid #
 #####################
 
-#' Title
+#' @rdname geo_transform
+#' @param centre_lon The longitude in decimal degrees of the centre of the
+#'   zoomed grid.
+#' @param centre_lat The latitude in decimal degrees of the centre of the
+#'   zoomed grid.
+#' @param length_x The number of grid squares from west to east of the zoomed
+#'   grid. If an even number is used, it will be extended by 1 since the zoomed
+#'   grid should be centred on the grid square containing
+#'   `(centre_lat, centre_lon)`.
+#' @param length_y The number of grid squares from south to north of the zoomed
+#'   grid. If an even number is used, it will be extended by 1 since the zoomed
+#'   grid should be centred on the grid square containing
+#'   `(centre_lat, centre_lon)`.
 #'
-#' @param x
-#' @param centre_lon
-#' @param centre_lat
-#' @param radius_x
-#' @param radius_y
-#'
-#' @return
 #' @export
-#'
-#' @examples
-geo_zoom <- function(x, centre_lon, centre_lat, radius_x, radius_y) {
+geo_zoom <- function(x, centre_lon, centre_lat, length_x, length_y) {
   UseMethod("geo_zoom")
 }
 
@@ -588,9 +578,17 @@ get_zoom_indices <-  function(
 }
 
 #' @export
-geo_zoom.geofield <- function(x, centre_lon, centre_lat, radius_x, radius_y) {
+geo_zoom.geofield <- function(x, centre_lon, centre_lat, length_x, length_y) {
+  length_x <- as.integer(length_x)
+  length_y <- as.integer(length_y)
+  if (length_x %% 2 != 0) {
+    length_x <- length_x + 1
+  }
+  if (length_y %% 2 != 0) {
+    length_y <- length_y + 1
+  }
   indices <- get_zoom_indices(
-    get_domain(x), centre_lon, centre_lat, radius_x, radius_y
+    get_domain(x), centre_lon, centre_lat, length_x / 2, length_y / 2
   )
   do.call(geo_subgrid, c(list(x = x), indices))
 }
@@ -644,20 +642,16 @@ geo_zoom.harp_grid_df <- function(
 # Cross section of a grid (one vertical level only) #
 #####################################################
 
-#' Title
-#'
-#' @param x
-#' @param a
-#' @param b
-#' @param n
-#' @param method
-#' @param weights
-#' @param keep_weights
-#'
-#' @return
+#' @rdname geo_transform
+#' @param a The geographic location in decimal degrees of the start of the
+#'   section. Should be a vector of length 2 with the first value being the
+#'   longitude and the second value the latitude.
+#' @param b The geographic location in decimal degrees of the end of the
+#'   section. Should be a vector of length 2 with the first value being the
+#'   longitude and the second value the latitude.
+#' @param n The number of equally spaced points along the section. The default
+#'   is 100.
 #' @export
-#'
-#' @examples
 geo_xsection <- function(
     x,
     p1,
@@ -785,16 +779,60 @@ geo_xsection.harp_grid_df <- function(
 # Generalized function #
 ########################
 
-#' Title
+#' Geographic transformation of gridded data
 #'
-#' @param x
-#' @param trans
-#' @param opts
+#' Gridded data can be transformed from one grid definition to another, to
+#' geographic points, to cross sections, to sub-domains of the original grid, or
+#' zoomed into the original a grid. The `geo_<transformation>` functions are
+#' used to achieve this, while the generalized function `geo_transform` is
+#' designed to be used in functions that will take the transformation as an
+#' argument.
 #'
-#' @return
+#' * `geo_points` is used to interpolate from a regular grid to geographic
+#' points within the domain of the grid
+#' * `geo_regrid` is used to interpolate from one regular grid to another
+#' regular grid. This can include reprojection from one grid projection to
+#' another.
+#' * `geo_xsection` extracts an equally spaced straight line of points between
+#' to geographic locations and cen be used to construct a vertical cross section
+#' of a 3-dimensional field. For grids that are equally space in longitude -
+#' latitude coordinates (e.g. latlong projections) the section can be along a
+#' great circle and thus the shortest distance between the two points.
+#' * `geo_subgrid` extracts a sub domain of the data without changing the
+#' coordinate reference system.
+#' * `geo_zoom` is a special case of `geo_subgrid` whereby a sub domain of the
+#' data is extracted centred around a geographic point.
+#' * `geo_transform` is a generalized function that can be used in functions
+#' that take the type of geographic transformation as an argument.
+#'
+#' For transformations that require the interpolation of data (points, regrid
+#' and xsection), the method of interpolation can be chosen. The available
+#' interpolation methods are nearest neighbour, bilinear and bicubic. In
+#' addition, masks can be used to prevent grid points being used in the
+#' interpolation - for example if you have a land-sea mask, grid points with a
+#' value of 0 or FALSE will not be used in the interpolation.
+#'
+#' @param x A geofield, geolist, or a data frame with class `harp_grid_df`. For
+#'   transformations that do not involve the interpolation of gridded data (e.g.
+#'   zoom, subgrid) `x` can also be a geodomain.
+#' @param trans The transformation to apply. Can be "points", "regrid",
+#'   "xsection", "subgrid", or "zoom".
+#' @param opts A list of options for the chosen transformation. The appropriate
+#'   \link{geo_opts} function should be used to generate this list.
+#' @param method The interpolation method. Can be "nearest" for nearest
+#'   neighbour, "bilinear", or "bicubic." The default is "bilinear".
+#' @param mask A mask to prevent grid points being used in the interpolation.
+#'   Should be on the same grid as `x` and grid points with values of 0 or FALSE
+#'   will be masked from the interpolation.
+#' @param weights Pre-computed weights for the interpolation. Should be the
+#'   output from the appropriate \link{geo_weights} function.
+#' @param keep_weights Whether to keep weights in the output. If set to TRUE,
+#'   the return object will have a "weights" attribute.
+#'
+#' @return In the case of transformations to points and cross sections, a data
+#'   frame. In all other cases an object of the same class as `x` with the
+#'   transformation applied.
 #' @export
-#'
-#' @examples
 geo_transform <- function(
     x,
     trans = c("points", "regrid", "subgrid", "zoom", "xsection"),
@@ -895,25 +933,44 @@ tranverse_mercator <- function(ref_lon, ref_lat, tilt) {
   )
 }
 
-#' Title
+#' Define a geodomain
 #'
-#' @param proj
-#' @param centre_lon
-#' @param centre_lat
-#' @param nxny
-#' @param dxdy
-#' @param ref_lon
-#' @param ref_lat
-#' @param exey
-#' @param tilt
-#' @param R
-#' @param ...
+#' This function is used to define a new domain with a regular grid. At a
+#' minimum, the projection, geographic location of the centre of the domain and
+#' number of horizontal resolution of the grid points must be provided.
 #'
-#' @return
+#' @param proj The projection of the domain. See details.
+#' @param centre_lon The longitude of the centre of the domain in decimal
+#'   degrees.
+#' @param centre_lat The latitude of the centre of the domain in decimal
+#'   degrees.
+#' @param nxny The number of grid points in the x and y directions. Should be a
+#'   vector of length 2 with the number of grid points in the x direction first.
+#'   If only 1 value is given it is assumed to be the same in both directions.
+#' @param dxdy The horizontal resolution of the grid in the x and y directions.
+#'   For lat-lon projections this should be in decimal degrees, otherwise should
+#'   be in metres. Should be a vector of length 2 with the resolution in the x
+#'   direction first.
+#' @param ref_lon The reference longitude of the projection if needed.
+#' @param ref_lat The reference latitude of the projection if needed.
+#' @param exey If defining a grid with an extension zone, a vector length 2 with
+#'   the number of grid points in the x and y directions of the extension zone.
+#'   If only 1 value is given it is assumed to be the same in both directions.
+#' @param tilt The tilt used in a rotated Mercator projection.
+#' @param R The radius of the earth in metres. The default is 6371229m.
+#' @param ... Other arguments describing the shape of the earth in `proj`
+#'   format.
+#'
+#' @return A `geodomain`
 #' @export
 #'
 #' @examples
-make_domain <- function(
+#' dd <- define_domain(10, 60, 1000, 2500) # Default lambert projection
+#' plot(dd)
+#'
+#' dd <- define_domain(0, 0, c(360, 180), 1, "latlong") # Whole earth
+#' plot(dd)
+define_domain <- function(
     centre_lon,
     centre_lat,
     nxny,
@@ -1009,6 +1066,20 @@ make_domain <- function(
   res
 }
 
+###############################
+# Options for transformations #
+###############################
+
+#' Options for different transformations
+#'
+#' When using \link{geo_transform} the transformation options must be passed as
+#' named list appropriate to the transformation. These functions are used to
+#' generate such named lists.
+#'
+#' @name geo_opts
+
+#' @rdname geo_opts
+#' @inheritParams geo_transform
 #' @export
 geo_opts_points <- function(
     points,
@@ -1037,6 +1108,8 @@ geo_opts_points <- function(
 
 }
 
+#' @rdname geo_opts
+#' @inheritParams geo_transform
 #' @export
 geo_opts_regrid <- function(
     new_grid,
@@ -1060,11 +1133,15 @@ geo_opts_regrid <- function(
 
 }
 
+#' @rdname geo_opts
+#' @inheritParams geo_transform
 #' @export
 geo_opts_subgrid <- function(i1, i2, j1, j2) {
   list(i1 = i1, i2 = i2, j1 = j1, j2 = j2)
 }
 
+#' @rdname geo_opts
+#' @inheritParams geo_transform
 #' @export
 geo_opts_zoom <- function(centre_lon, centre_lat, radius_x, radius_y) {
   list(
@@ -1073,6 +1150,8 @@ geo_opts_zoom <- function(centre_lon, centre_lat, radius_x, radius_y) {
   )
 }
 
+#' @rdname geo_opts
+#' @inheritParams geo_transform
 #' @export
 geo_opts_xsection <- function(
     p1,
