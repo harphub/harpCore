@@ -25,6 +25,8 @@ as \code{\link[dplyr]{select}}.}
 
 \item{df_name}{The name of the data frame - only really used to generate
 error messages.}
+
+\item{...}{Used for methods.}
 }
 \value{
 An object of the same class as \code{.data} containing the decumulated

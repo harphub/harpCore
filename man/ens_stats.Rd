@@ -2,6 +2,7 @@
 % Please edit documentation in R/harp_df_list.R
 \name{ens_stats}
 \alias{ens_stats}
+\alias{ens_stats.harp_ens_point_df}
 \title{Compute basic ensemble statistics}
 \usage{
 ens_stats(
@@ -12,6 +13,18 @@ ens_stats(
   min = FALSE,
   max = FALSE,
   keep_members = FALSE,
+  ...
+)
+
+\method{ens_stats}{harp_ens_point_df}(
+  .fcst,
+  mean = TRUE,
+  sd = TRUE,
+  var = FALSE,
+  min = FALSE,
+  max = FALSE,
+  keep_members = FALSE,
+  median = FALSE,
   ...
 )
 }
@@ -33,6 +46,8 @@ ens_stats(
 returned object. The default is to only return the statistics.}
 
 \item{...}{Not used.}
+
+\item{median}{Logical. Whether to compute the ensemble median.}
 }
 \value{
 An object of the same class as \code{.fcst} with columns for the ensemble
@@ -44,7 +59,8 @@ standard deviation (spread), ensemble variance, ensemble minimum, and
 ensemble are calculated.
 }
 \details{
-By default only the ensemble mean and standard deviation are computed.
+By default only the ensemble mean and standard deviation are computed. Note
+that the ensemble median is not yet implemented for gridded data.
 }
 \examples{
 ens_stats(ens_point_df)

@@ -29,7 +29,7 @@ geo_opts_regrid(
 
 geo_opts_subgrid(i1, i2, j1, j2)
 
-geo_opts_zoom(centre_lon, centre_lat, radius_x, radius_y)
+geo_opts_zoom(centre_lon, centre_lat, length_x, length_y)
 
 geo_opts_xsection(
   p1,
@@ -85,6 +85,24 @@ zoomed grid.}
 
 \item{centre_lat}{The latitude in decimal degrees of the centre of the
 zoomed grid.}
+
+\item{length_x}{The number of grid squares from west to east of the zoomed
+grid. If an even number is used, it will be extended by 1 since the zoomed
+grid should be centred on the grid square containing
+\verb{(centre_lat, centre_lon)}.}
+
+\item{length_y}{The number of grid squares from south to north of the zoomed
+grid. If an even number is used, it will be extended by 1 since the zoomed
+grid should be centred on the grid square containing
+\verb{(centre_lat, centre_lon)}.}
+
+\item{p1}{The geographic location in decimal degrees of the start of the
+section. Should be a vector of length 2 with the first value being the
+longitude and the second value the latitude.}
+
+\item{p2}{The geographic location in decimal degrees of the end of the
+section. Should be a vector of length 2 with the first value being the
+longitude and the second value the latitude.}
 
 \item{n}{The number of equally spaced points along the section. The default
 is 100.}

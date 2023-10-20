@@ -109,6 +109,14 @@ grid. If an even number is used, it will be extended by 1 since the zoomed
 grid should be centred on the grid square containing
 \verb{(centre_lat, centre_lon)}.}
 
+\item{p1}{The geographic location in decimal degrees of the start of the
+section. Should be a vector of length 2 with the first value being the
+longitude and the second value the latitude.}
+
+\item{p2}{The geographic location in decimal degrees of the end of the
+section. Should be a vector of length 2 with the first value being the
+longitude and the second value the latitude.}
+
 \item{n}{The number of equally spaced points along the section. The default
 is 100.}
 
@@ -117,14 +125,6 @@ is 100.}
 
 \item{opts}{A list of options for the chosen transformation. The appropriate
 \link{geo_opts} function should be used to generate this list.}
-
-\item{a}{The geographic location in decimal degrees of the start of the
-section. Should be a vector of length 2 with the first value being the
-longitude and the second value the latitude.}
-
-\item{b}{The geographic location in decimal degrees of the end of the
-section. Should be a vector of length 2 with the first value being the
-longitude and the second value the latitude.}
 }
 \value{
 In the case of transformations to points and cross sections, a data

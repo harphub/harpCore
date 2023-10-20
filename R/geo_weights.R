@@ -60,7 +60,6 @@ geo_weights_points <- function(
   points,
   method     = c("bilinear", "nearest", "bicubic"),
   mask       = NULL,
-  pointmask = NULL,
   force      = FALSE
 ) {
   UseMethod("geo_weights_points")

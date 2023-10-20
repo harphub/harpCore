@@ -717,6 +717,7 @@ scale_param.harp_list <- function(x, scaling, new_units, mult = FALSE, ...) {
 #'   as \code{\link[dplyr]{select}}.
 #' @param df_name The name of the data frame - only really used to generate
 #'   error messages.
+#' @param ... Used for methods.
 #'
 #' @return An object of the same class as `.data` containing the decumulated
 #'   values.
@@ -914,10 +915,11 @@ decum_df <- function(
       df_name,
       ": Interval between lead times is not usable for decum_time = ",
       names(decum_time),
+      "\nNo decumulation done.",
       call.      = FALSE,
       immediate. = TRUE
     )
-    return(.fcst[FALSE, ])
+    return(.data[grep("data_times", colnames(.data), invert = TRUE)])
   }
   lag_rows <- decum_time / dt_res
 
@@ -943,7 +945,8 @@ decum_df <- function(
 #' standard deviation (spread), ensemble variance, ensemble minimum, and
 #' ensemble are calculated.
 #'
-#' By default only the ensemble mean and standard deviation are computed.
+#' By default only the ensemble mean and standard deviation are computed. Note
+#' that the ensemble median is not yet implemented for gridded data.
 #'
 #' @param .fcst A `harp_ens_grid_df` or `harp_ens_point_df` data frame, or a
 #'   `harp_list` containing data frames with those classes.
@@ -1036,6 +1039,8 @@ ens_stats.harp_ens_grid_df <- function(
 
 }
 
+#' @rdname ens_stats
+#' @param median Logical. Whether to compute the ensemble median.
 #' @export
 ens_stats.harp_ens_point_df <- function(
     .fcst,
@@ -1044,9 +1049,9 @@ ens_stats.harp_ens_point_df <- function(
     var          = FALSE,
     min          = FALSE,
     max          = FALSE,
-    median       = FALSE,
     keep_members = FALSE,
-    ...
+    median       = FALSE,
+  ...
 ) {
 
   stats <- c(mean, sd, var, min, max, median)
@@ -1116,8 +1121,8 @@ ens_stats.harp_list <- function(
   var          = FALSE,
   min          = FALSE,
   max          = FALSE,
-  median       = FALSE,
   keep_members = FALSE,
+  median       = FALSE,
   ...
 ) {
   as_harp_list(
@@ -1149,6 +1154,7 @@ ens_stats.harp_list <- function(
 #' @param x A `harp_ens_grid_df` or `harp_ens_point_df` data frame, a `geolist`,
 #'   or a `harp_list` containing ensemble data frames.
 #' @inheritParams nbhd_smooth
+#' @param ... Used for methods.
 #' @return An object of the same class as `x` with the probabilities computed
 #' @export
 #'

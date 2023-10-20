@@ -601,7 +601,7 @@ geo_zoom.harp_geolist <- geo_zoom.geofield
 
 #' @export
 geo_zoom.harp_grid_df <- function(
-    x, centre_lon, centre_lat, radius_x, radius_y
+    x, centre_lon, centre_lat, length_x, length_y
 ) {
 
   geolist_cols <- colnames(x)[which(sapply(x, is_geolist))]
@@ -609,7 +609,7 @@ geo_zoom.harp_grid_df <- function(
     x[geolist_cols],
     function(d) {
       try(
-        geo_zoom(d, centre_lon, centre_lat, radius_x, radius_y),
+        geo_zoom(d, centre_lon, centre_lat, length_x, length_y),
         silent = TRUE
       )
     }
@@ -643,10 +643,10 @@ geo_zoom.harp_grid_df <- function(
 #####################################################
 
 #' @rdname geo_transform
-#' @param a The geographic location in decimal degrees of the start of the
+#' @param p1 The geographic location in decimal degrees of the start of the
 #'   section. Should be a vector of length 2 with the first value being the
 #'   longitude and the second value the latitude.
-#' @param b The geographic location in decimal degrees of the end of the
+#' @param p2 The geographic location in decimal degrees of the end of the
 #'   section. Should be a vector of length 2 with the first value being the
 #'   longitude and the second value the latitude.
 #' @param n The number of equally spaced points along the section. The default
@@ -1123,7 +1123,7 @@ geo_opts_regrid <- function(
   method <- match.arg(method)
 
   list(
-    points       = points,
+    new_grid     = new_grid,
     method       = method,
     mask         = mask,
     new_mask     = new_mask,
@@ -1143,10 +1143,10 @@ geo_opts_subgrid <- function(i1, i2, j1, j2) {
 #' @rdname geo_opts
 #' @inheritParams geo_transform
 #' @export
-geo_opts_zoom <- function(centre_lon, centre_lat, radius_x, radius_y) {
+geo_opts_zoom <- function(centre_lon, centre_lat, length_x, length_y) {
   list(
     centre_lon = centre_lon, centre_lat = centre_lat,
-    radius_x = radius_x, radius_y = radius_y
+    length_x = length_x, length_y = length_y
   )
 }
 

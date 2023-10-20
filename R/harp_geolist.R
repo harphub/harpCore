@@ -30,6 +30,9 @@ NULL
 #' @export
 #'
 #' @examples
+#' get_domain(det_grid_df$fcst)
+#'
+#' get_domain(det_grid_df$fcst[[1]])
 get_domain <- function(x) {
   UseMethod("get_domain")
 }
@@ -77,16 +80,21 @@ check_same_domain <- function(x) {
 
 # lapply function for geolists - operates on a geolist and
 # returns a geolist
-#' Title
+#' Apply a function to each element of a geolist
 #'
-#' @param X
-#' @param FUN
-#' @param ...
+#' `glapply` is an implementation of \code{\link[base]{lapply}} especially for
+#' geolists. `FUN` is applied to each element of the `geolist` and a `geolist`
+#' of the same length is returned.
 #'
-#' @return
+#' @inheritParams base::lapply
+#' @return A `geolist` of the same length as `X` with `FUN` applied to all
+#'   elements.
 #' @export
 #'
 #' @examples
+#' glapply(det_grid_df$fcst, sqrt)
+#'
+#' glapply(det_grid_df$fcst, function(x) x + 10)
 glapply <- function(X, FUN, ...) {
   if (!is_geolist(X)) {
     rlang::abort("`glapply` can only be used on geolists.")
@@ -98,6 +106,22 @@ glapply <- function(X, FUN, ...) {
   geolist(lapply(X, .f, domain = get_domain(X), ...))
 }
 
+#' Apply a function to element pairs of 2 geolists
+#'
+#' `glapply2()` is variant of `glapply()` whereby a function that takes 2
+#' `geofield`s as arguments is applied element-wise to 2 geolists. It is
+#' equivalent to \code{\link[purrr]{map2}}, but is explicitly for `geolist`s.
+#'
+#' @param X A geolist
+#' @param Y A geolist of the same length as `X` that is on the same domain.
+#' @param FUN The function to apply to `X` and `Y`.
+#' @param ... Other arguments to `FUN`.
+#'
+#' @return A `geolist` of the same length as `X` and `Y`.
+#' @examples
+#' glapply2(
+#'   ens_grid_df$grid_mbr000, ens_grid_df$grid_mbr001, function(x, y) x + y
+#' )
 #' @export
 glapply2 <- function(X, Y, FUN, ...) {
   if (!(is_geolist(X) && is_geolist(Y))) {
@@ -174,24 +198,48 @@ new_geofield <- function(
 }
 
 # geofield generic and methods for instantiating a geofield
-#' Title
+
+#' Geofields
 #'
-#' @param x
-#' @param ...
+#' A geofield is a georeferenced 2d-array. The coordinate reference system is
+#' stored as attributes to the array. Used together \code{\link{define_domain}},
+#' a geofield can be created from a 2d-array. Additionally, `geofield()` can be
+#' used to extract a `geofield` from a \code{\link{geolist}}. This can be
+#' useful for extracting a `geofield` in a pipeline.
 #'
-#' @return
+#' @param x A 2d array or `geolist`
+#' @param ... Used for methods
+#'
+#' @return A `geofield`.
 #' @export
 #'
 #' @examples
+#' my_domain <- define_domain(10, 60, 300, 10000)
+#' gfld <- geofield(
+#'   array(rnorm(300 * 300), c(300, 300)),
+#'   domain = my_domain
+#' )
+#' meteogrid::iview(gfld)
+#'
+#' geofield(det_grid_df$fcst, 4)
+#' # is equivalent to
+#' det_grid_df$fcst[[4]]
+#' # but geofield() can be used in a pipeline
+#' det_grid_df$fcst %>%
+#'   geofield(4)
 geofield <- function(x, ...) {
   UseMethod("geofield")
 }
 
+#' @rdname geofield
+#' @param i The element of the `geolist` to extract.
 #' @export
 geofield.harp_geolist <- function(x, i = 1, ...) {
   new_geofield(x[[i]])
 }
 
+#' @rdname geofield
+#' @param domain A `geodomain` with the same dimensions as `x`.
 #' @export
 geofield.array <- function(x, domain, ...) {
   if (missing(domain) || !meteogrid::is.geodomain(domain)) {
@@ -260,15 +308,70 @@ validate_geolist <- function(x, call = rlang::caller_env()) {
 
 # User facing instantiator
 
-#' Title
+#' Geolists
 #'
-#' @param ...
-#' @param domain
+#' A `geolist` is a list of \code{\link{geofield}s} that are on the same domain.
+#' The main purpose of a `geolist` is to be used as a column in a data frame.
 #'
-#' @return
+#' A number of methods are available for `geolist`s that reduce the `geolist` to
+#' a `geolist` containing a single `geofield`. These include:
+#'
+#' * `mean` - element-wise mean of the `geolist`
+#' * `std_dev` - element-wise standard deviation of the `geolist`
+#' * `variance` element-wise variance of the `geolist`
+#' * `min` - element-wise minimum of the `geolist`
+#' * `max` - element-wise maximum of the `geolist`
+#' * `cumsum` - element-wise cumulative sum of the `geolist`
+#' * `cumprod` - element-wise cumulative product of the `geolist`
+#' * `cummin` - element-wise cumulative minimum of the `geolist`
+#' * `cummax` - element-wise cumulative maximum of the `geolist`
+#' * `any` - element-wise any of a logical `geolist` is TRUE
+#' * `all` - element-wise all of a logical `geolist` is TRUE
+#'
+#' Note that the R stats functions \code{\link[stats]{sd}} and
+#' \code{\link[stats]{var}} cannot be used on `geolist`s since they are not
+#' implemented as methods, so `std_dev` and `variance` must be used instead.
+#'
+#' In addition most of R's generic math and logic functions work with
+#' `geolist`s.
+#'
+#' `is_geolist()` checks if the argument is a valid geolist.
+#'
+#' @param ... geofields or a list containing geofields
+#' @param domain Typically not used, since the domain will be obtained from the
+#'   geofields
+#'
+#' @return A list of geofields on the same domain with class `harp_geolist`
 #' @export
 #'
 #' @examples
+#' # Define a domain
+#' my_domain <- define_domain(10, 60, 300, 10000)
+#'
+#' # geolist from indivdual geofields
+#' geolist(
+#'   geofield(array(rnorm(300 * 300), c(300, 300)), domain = my_domain),
+#'   geofield(array(rnorm(300 * 300), c(300, 300)), domain = my_domain)
+#' )
+#'
+#' # geolist from a list of geofields
+#' gfld <- lapply(
+#'   1:10,
+#'   function(x) geofield(
+#'     array(runif(300 * 300), c(300, 300)), domain = my_domain
+#'   )
+#' )
+#' glst <- geolist(gfld)
+#' glst
+#'
+#' # Summarise geolist to a single geofield
+#' mean(glst)
+#' std_dev(glst)
+#' variance(glst)
+#' min(glst)
+#' max(glst)
+#' any(glst > 0.9)
+#' all(glst > 0.25)
 geolist <- function(..., domain = NULL) {
   x <- list(...)
   if (length(x) == 1 && is.list(x[[1]])) {
@@ -277,7 +380,8 @@ geolist <- function(..., domain = NULL) {
   validate_geolist(new_geolist(x, domain = domain))
 }
 
-# Check if is geolist
+#' @rdname geolist
+#' @param x An object
 #' @export
 is_geolist <- function(x) {
   inherits(x, "harp_geolist")
@@ -607,11 +711,11 @@ vec_math.harp_geolist <- function(.fn, .x, na.rm = FALSE, ...) {
   dom <- get_domain(.x)
   switch(
     .fn,
-    "sum"     = math_out(harpCore:::cpp_geolist_sum(.x, na.rm), dom),
-    "prod"    = math_out(harpCore:::cpp_geolist_prod(.x, na.rm), dom),
-    "mean"    = math_out(harpCore:::cpp_geolist_mean(.x, na.rm), dom),
-    "any"     = math_out(harpCore:::cpp_geolist_any(.x, na.rm), dom),
-    "all"     = math_out(harpCore:::cpp_geolist_all(.x, na.rm), dom),
+    "sum"     = math_out(cpp_geolist_sum(.x, na.rm), dom),
+    "prod"    = math_out(cpp_geolist_prod(.x, na.rm), dom),
+    "mean"    = math_out(cpp_geolist_mean(.x, na.rm), dom),
+    "any"     = math_out(cpp_geolist_any(.x, na.rm), dom),
+    "all"     = math_out(cpp_geolist_all(.x, na.rm), dom),
     "cumsum"  = geolist(Reduce(`+`, .x, accumulate = TRUE)),
     "cumprod" = geolist(Reduce(`*`, .x, accumulate = TRUE)),
     "cummin"  = geolist(Reduce(pmin, .x, accumulate = TRUE)),
@@ -623,19 +727,22 @@ vec_math.harp_geolist <- function(.fn, .x, na.rm = FALSE, ...) {
 # min and max are not part of vec_math
 
 #' @export
-min.harp_geolist <- function(x, na.rm = FALSE) {
+min.harp_geolist <- function(..., na.rm = FALSE) {
+  x <- list(...)[[1]]
   domain <- get_domain(x)
-  math_out(harpCore:::cpp_geolist_min(x, na.rm), dom)
+  math_out(cpp_geolist_min(x, na.rm), domain)
 }
 
 #' @export
-max.harp_geolist <- function(x, na.rm = FALSE) {
+max.harp_geolist <- function(..., na.rm = FALSE) {
+  x <- list(...)[[1]]
   domain <- get_domain(x)
-  math_out(harpCore:::cpp_geolist_max(x, na.rm), dom)
+  math_out(cpp_geolist_max(x, na.rm), domain)
 }
 
 # var and sd are not generics - need separate functions
 
+#' @rdname geolist
 #' @export
 variance <- function(x, na.rm = FALSE, ...) {
   UseMethod("variance")
@@ -652,7 +759,8 @@ variance.harp_geolist <- function(x, na.rm = FALSE, ...) {
   math_out(cpp_geolist_var_sd(x, na.rm), dom)
 }
 
-#' @rdname variance
+#' @rdname geolist
+#' @param na.rm Logical. Whether to remove `NA`s before calculation.
 #' @export
 std_dev <- function(x, na.rm = FALSE, ...) {
   UseMethod("std_dev")

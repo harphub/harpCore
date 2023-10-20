@@ -14,7 +14,6 @@ geo_weights_points(
   points,
   method = c("bilinear", "nearest", "bicubic"),
   mask = NULL,
-  pointmask = NULL,
   force = FALSE
 )
 
@@ -69,6 +68,14 @@ regridded to. \link{define_domain} can be used to define a new \code{geodomain}.
 
 \item{new_mask}{A \code{geofield} on the same grid as \code{new_grid} with grid points
 that should not be interpolated to set to 0 or FALSE.}
+
+\item{p1}{The geographic location in decimal degrees of the start of the
+section. Should be a vector of length 2 with the first value being the
+longitude and the second value the latitude.}
+
+\item{p2}{The geographic location in decimal degrees of the end of the
+section. Should be a vector of length 2 with the first value being the
+longitude and the second value the latitude.}
 
 \item{n}{The number of equally spaced points along the section. The default
 is 100.}

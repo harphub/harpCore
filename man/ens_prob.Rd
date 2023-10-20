@@ -35,6 +35,8 @@ thresholds in the comparison when \code{comparator = "between"} or
 \item{include_high}{Logical. Whether to include to the higher of the two
 thresholds in the comparison when \code{comparator = "between"} or
 \code{comparator = "outside"}.}
+
+\item{...}{Used for methods.}
 }
 \value{
 An object of the same class as \code{x} with the probabilities computed

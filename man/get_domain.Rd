@@ -16,3 +16,8 @@ A geodomain
 The "domain" attribute is extracted from the input and returned if it is a
 geodomain.
 }
+\examples{
+get_domain(det_grid_df$fcst)
+
+get_domain(det_grid_df$fcst[[1]])
+}

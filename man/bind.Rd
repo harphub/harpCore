@@ -29,7 +29,7 @@ as_harp_df(NextMethod())
 \details{
 Bind data frames in a list
 
-\code{bind_dfr} is a wrapper around \code{\link[dplyr]{bind_rows}} with a
+\code{bind} is a wrapper around \code{\link[dplyr]{bind_rows}} with a
 dedicated method for harp_list objects. In all other cases
 \code{\link[dplyr]{bind_rows}} is called.
 
@@ -44,27 +44,27 @@ It should be noted that no check is made on the classes of the data frames
 in the harp_list object, and the class of the first is used in the output.
 }
 \examples{
-bind_dfr(
+bind(
   as_harp_list(
     a = as_harp_df(data.frame(
-      valid_dttm = seq_dttm(2021010100, 2021010123),
+      valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
       a_det = runif(24)
     )),
     b = as_harp_df(data.frame(
-      valid_dttm = seq_dttm(2021010100, 2021010123),
+      valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
       b_det = runif(24)
     ))
   )
 )
-bind_dfr(
+bind(
   as_harp_list(
     a = as_harp_df(data.frame(
-      valid_dttm = seq_dttm(2021010100, 2021010123),
+      valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
       a_mbr000  = runif(24),
       a_mbr001  = runif(24)
     )),
     b = as_harp_df(data.frame(
-      valid_dttm = seq_dttm(2021010100, 2021010123),
+      valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
       b_mbr000 = runif(24),
       b_mbr001 = runif(24)
     ))

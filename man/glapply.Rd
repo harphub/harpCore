@@ -2,13 +2,32 @@
 % Please edit documentation in R/harp_geolist.R
 \name{glapply}
 \alias{glapply}
-\title{Title}
+\title{Apply a function to each element of a geolist}
 \usage{
 glapply(X, FUN, ...)
 }
 \arguments{
-\item{...}{}
+\item{X}{a vector (atomic or list) or an \code{\link[base]{expression}}
+    object.  Other objects (including classed objects) will be coerced
+    by \code{base::\link[base]{as.list}}.}
+
+\item{FUN}{the function to be applied to each element of \code{X}:
+    see \sQuote{Details}.  In the case of functions like
+    \code{+}, \code{\%*\%}, the function name must be backquoted or quoted.}
+
+\item{...}{optional arguments to \code{FUN}.}
+}
+\value{
+A \code{geolist} of the same length as \code{X} with \code{FUN} applied to all
+elements.
 }
 \description{
-Title
+\code{glapply} is an implementation of \code{\link[base]{lapply}} especially for
+geolists. \code{FUN} is applied to each element of the \code{geolist} and a \code{geolist}
+of the same length is returned.
+}
+\examples{
+glapply(det_grid_df$fcst, sqrt)
+
+glapply(det_grid_df$fcst, function(x) x + 10)
 }

@@ -98,18 +98,6 @@ arrange.harp_list <- function(.data, ..., .by_group = FALSE) {
   as_harp_list(lapply(.data, arrange, ..., .by_group))
 }
 
-#' @importFrom dplyr group_by
-#' @export
-group_by.harp_df <- function(.data, ...) {
-  as_harp_df(NextMethod())
-}
-
-#' @importFrom dplyr ungroup
-#' @export
-ungroup.harp_df <- function(.data, ...) {
-  as_harp_df(NextMethod())
-}
-
 #' Extract a single column
 #'
 #' This is the \code{harp_list} method for \code{\link[dplyr]{pull}()}. It
@@ -134,7 +122,7 @@ group_by.harp_df <- function(.data, ...) {
 
 #' @importFrom dplyr ungroup
 #' @export
-ungroup.harp_df <- function(.data, ...) {
+ungroup.harp_df <- function(x, ...) {
   as_harp_df(NextMethod())
 }
 
@@ -153,7 +141,7 @@ ungroup.harp_df <- function(.data, ...) {
 
 #' Bind data frames in a list
 #'
-#' \code{bind_dfr} is a wrapper around \code{\link[dplyr]{bind_rows}} with a
+#' \code{bind} is a wrapper around \code{\link[dplyr]{bind_rows}} with a
 #' dedicated method for harp_list objects. In all other cases
 #' \code{\link[dplyr]{bind_rows}} is called.
 #'
@@ -175,27 +163,27 @@ ungroup.harp_df <- function(.data, ...) {
 #' @export
 #'
 #' @examples
-#' bind_dfr(
+#' bind(
 #'   as_harp_list(
 #'     a = as_harp_df(data.frame(
-#'       valid_dttm = seq_dttm(2021010100, 2021010123),
+#'       valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
 #'       a_det = runif(24)
 #'     )),
 #'     b = as_harp_df(data.frame(
-#'       valid_dttm = seq_dttm(2021010100, 2021010123),
+#'       valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
 #'       b_det = runif(24)
 #'     ))
 #'   )
 #' )
-#' bind_dfr(
+#' bind(
 #'   as_harp_list(
 #'     a = as_harp_df(data.frame(
-#'       valid_dttm = seq_dttm(2021010100, 2021010123),
+#'       valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
 #'       a_mbr000  = runif(24),
 #'       a_mbr001  = runif(24)
 #'     )),
 #'     b = as_harp_df(data.frame(
-#'       valid_dttm = seq_dttm(2021010100, 2021010123),
+#'       valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
 #'       b_mbr000 = runif(24),
 #'       b_mbr001 = runif(24)
 #'     ))
@@ -388,4 +376,13 @@ anti_join.harp_list <- function(x, y, by = NULL, ...) {
     )
   }
   as_harp_list(lapply(x, anti_join, y, by, ...))
+}
+
+# Define `:=` so it can be used (though it doesn't actually do anything so
+# an abort works fine. This is copied from rlang)
+`:=` <- function(x, y) {
+  rlang::abort(
+    "`:=` can only be used within dynamic dots.",
+    call = rlang::caller_env()
+  )
 }
