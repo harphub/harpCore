@@ -1332,3 +1332,82 @@ ens_prob.harp_list <- function(
     )
   )
 }
+
+#' Filter to common cases
+#'
+#' For a fair comparison of models, the verification should only be done for
+#' dates and locations that are common to all models. \code{common_cases} takes
+#' a harp_list object as input and then identifies and filters to only those
+#' cases that are common to all of the forecast models in the harp_list object.
+#' By default this is done with the SID, fcst_dttm and lead_time columns, but
+#' extra columns can be added via `...`. If one of the columns is a vertical
+#' coordinate ("p", "z", "ml" for pressure, height and model level
+#' respectively), that column will also be included.
+#'
+#' @param .fcst A harp_list object
+#' @param ... Extra columns from which to determine the common cases. To remove
+#'   one of the default columns from the test use -<col>.
+#'
+#' @return The input data frame with only the common stations and forecast dates
+#'   for each forecast model selected.
+#' @export
+common_cases <- function(.fcst, ...) {
+  UseMethod("common_cases")
+}
+
+#' @export
+common_cases.harp_df <- function(.fcst, ...) {
+  .fcst
+}
+
+#' @export
+common_cases.harp_list <- function(.fcst, ...) {
+
+  if (length(.fcst) < 2) {
+    return(.fcst)
+  }
+
+  common_cols <- c("SID", "fcst_dttm", "lead_time", "p", "z", "ml")
+
+  common_rows <- lapply(
+    .fcst,
+    function(x) {
+      dplyr::arrange(
+        dplyr::distinct(
+          dplyr::select(
+            x,
+            dplyr::any_of(common_cols),
+            ...
+          )
+        ),
+        dplyr::across(dplyr::any_of(common_cols)),
+        ...
+      )
+    }
+  )
+
+  all_identical <- all(
+    purrr::map2_lgl(
+      1:(length(common_rows) - 1),
+      2:length(common_rows),
+      ~identical(common_rows[[.x]], common_rows[[.y]])
+    )
+  )
+
+  if (all_identical) {
+    return(.fcst)
+  }
+
+  common_rows <- Reduce(
+    function(x, y) suppressMessages(dplyr::inner_join(x, y)),
+    common_rows
+  )
+
+  suppressMessages(
+    suppressWarnings(
+      harpCore::join_to_fcst(.fcst, common_rows, force = TRUE)
+    )
+  )
+
+}
+
