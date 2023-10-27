@@ -7,6 +7,7 @@
 \alias{geo_opts_subgrid}
 \alias{geo_opts_zoom}
 \alias{geo_opts_xsection}
+\alias{geo_opts_upscale}
 \title{Options for different transformations}
 \usage{
 geo_opts_points(
@@ -39,6 +40,8 @@ geo_opts_xsection(
   weights = NULL,
   keep_weights = FALSE
 )
+
+geo_opts_upscale(factor, method = "mean", downsample_location = "bottom_left")
 }
 \arguments{
 \item{points}{A data frame of geographic points to which to interpolate the
@@ -48,7 +51,11 @@ for the point, "lon" for the longitude of the point in decimal degrees and
 contain other columns, which will be retained in the output.}
 
 \item{method}{The interpolation method. Can be "nearest" for nearest
-neighbour, "bilinear", or "bicubic." The default is "bilinear".}
+neighbour, "bilinear", or "bicubic." The default is "bilinear". For
+\code{geo_upscale}, can be any function that summarises a vector to a
+single value and can found with \code{\link[base]{match.fun}}, the default
+being "mean". A further option is "downsample", dwhich is described in the
+argument for \code{downsample_location}.}
 
 \item{mask}{A mask to prevent grid points being used in the interpolation.
 Should be on the same grid as \code{x} and grid points with values of 0 or FALSE
@@ -106,6 +113,15 @@ longitude and the second value the latitude.}
 
 \item{n}{The number of equally spaced points along the section. The default
 is 100.}
+
+\item{factor}{An integer by which to upscale the data. Can be of length 2 to
+achieve different upscaling in the x and directions.}
+
+\item{downsample_location}{When "downsample" is the chosen method, each
+pixel in the upscaled field is sampled from a pixel from the original field
+that is inside the upscaled pixel. The location of that pixel can be one of
+"bottom_left", "bottom_centre", "bottom_right", "left_centre", "centre",
+"right_centre", "top_right", "top_centre", "top_left" or "random".}
 }
 \description{
 When using \link{geo_transform} the transformation options must be passed as

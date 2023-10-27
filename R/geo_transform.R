@@ -605,7 +605,7 @@ geo_zoom.harp_grid_df <- function(
 ) {
 
   geolist_cols <- colnames(x)[which(sapply(x, is_geolist))]
-  indices <- lapply(
+  zoomed <- lapply(
     x[geolist_cols],
     function(d) {
       try(
@@ -614,13 +614,13 @@ geo_zoom.harp_grid_df <- function(
       )
     }
   )
-  error_cols <- which(vapply(indices, inherits, logical(1), "try-error"))
+  error_cols <- which(vapply(zoomed, inherits, logical(1), "try-error"))
   if (length(error_cols) > 0) {
     error_col_names <- geolist_cols[error_cols]
     invisible(mapply(
       function(col, err) {cli::cli_alert(col); cat(err, "\n")},
       error_col_names,
-      indices[error_cols]
+      zoomed[error_cols]
     ))
     cli::cli_abort(c(
       "Errors reported for some columns in data frame:",
@@ -628,13 +628,8 @@ geo_zoom.harp_grid_df <- function(
     ))
   }
 
-  dplyr::mutate(
-    x,
-    dplyr::across(
-      geolist_cols,
-      ~geo_zoom(.x, centre_lon, centre_lat, radius_x, radius_y)
-    )
-  )
+  x[geolist_cols] <- zoomed
+  x
 
 }
 
@@ -775,6 +770,210 @@ geo_xsection.harp_grid_df <- function(
   attr(x, "domain") <- domains
   x
 }
+
+#######################################
+# Upscale a grid by an integer factor #
+#######################################
+
+#' @rdname geo_transform
+#' @param factor An integer by which to upscale the data. Can be of length 2 to
+#'   achieve different upscaling in the x and directions.
+#' @param downsample_location When "downsample" is the chosen method, each
+#'   pixel in the upscaled field is sampled from a pixel from the original field
+#'   that is inside the upscaled pixel. The location of that pixel can be one of
+#'   "bottom_left", "bottom_centre", "bottom_right", "left_centre", "centre",
+#'   "right_centre", "top_right", "top_centre", "top_left" or "random".
+#' @param ... Extra options for `method`.
+#'
+#' @export
+geo_upscale <- function(
+  x,
+  factor,
+  method              = "mean",
+  downsample_location = "bottom_left",
+  ...
+) {
+  UseMethod("geo_upscale")
+}
+
+#' @export
+geo_upscale.geofield <- function(
+  x,
+  factor,
+  method              = "mean",
+  downsample_location = "bottom_left",
+  ...
+) {
+
+  check_numeric(factor, "factor")
+  factor <- round_to_integer(factor, "factor")
+  if (length(factor) == 1) {
+    factor <- rep(factor, 2)
+  }
+
+  factor <- correct_length(factor, "factor", 2)
+
+  old_domain    <- meteogrid::as.geodomain(x)
+  dom_ext       <- meteogrid::DomainExtent(old_domain)
+  dom_crnrs     <- meteogrid::DomainCorners(old_domain)
+  new_domain    <- old_domain
+
+  new_domain[["dx"]] <- dom_ext[["dx"]] * factor[1]
+  new_domain[["dy"]] <- dom_ext[["dy"]] * factor[2]
+  new_domain[["nx"]] <- floor(dom_ext[["nx"]] / factor[1])
+  new_domain[["ny"]] <- floor(dom_ext[["ny"]] / factor[2])
+
+  sw0 <- meteogrid::project(
+    dom_crnrs[["SW"]], proj = old_domain[["projection"]], inv = FALSE
+  )
+
+  sw1 <- c(sw0[["x"]], sw0[["y"]]) +
+    c(dom_ext[["dx"]], dom_ext[["dy"]]) * (factor - 1) / 2
+
+  new_domain[["SW"]] <- as.numeric(
+    meteogrid::project(sw1, proj = new_domain[["projection"]], inv = TRUE)
+  )
+
+  ne1 <- sw1 + c(
+    (new_domain[["nx"]] - 1) * new_domain[["dx"]],
+    (new_domain[["ny"]] - 1) * new_domain[["dy"]]
+  )
+
+  new_domain[["NE"]] <- as.numeric(
+    meteogrid::project(ne1, proj = new_domain[["projection"]], inv = TRUE)
+  )
+
+  new_domain[["clonlat"]] <- as.numeric(meteogrid::project(
+    (ne1 + sw1) / 2, proj = new_domain[["projection"]], inv = TRUE
+  ))
+
+  zz <- array(
+    x[1:(factor[1] * new_domain[["nx"]]), 1:(factor[2] * new_domain[["ny"]])],
+    c(factor[1], new_domain[["nx"]], factor[2], new_domain[["ny"]])
+  )
+
+  if (method == "downsample") {
+    return(harpCore::geofield(
+      downsample(
+        x, factor, new_domain[["nx"]], new_domain[["ny"]], downsample_location
+      ),
+      domain = new_domain
+    ))
+  }
+
+  if (method == "mean") {
+    result <- apply(zz, c(2, 4), sum, ...) / (factor[1] * factor[2])
+  } else {
+    result <- apply(zz, c(2, 4), match.fun(method), ...)
+  }
+
+  harpCore::geofield(result, domain = new_domain)
+}
+
+#' @export
+geo_upscale.geolist <- function(
+  x,
+  factor,
+  method              = "mean",
+  downsample_location = "bottom_left",
+  ...
+) {
+  glapply(x, geo_upscale, factor, method, downsample_location)
+}
+
+#' @export
+geo_upscale.harp_grid_df <- function(
+  x,
+  factor,
+  method              = "mean",
+  downsample_location = "bottom_left",
+  ...
+) {
+  dplyr::mutate(
+    x,
+    dplyr::across(
+      dplyr::where(is_geolist),
+      ~geo_upscale(.x, factor, method, downsample_location, ...)
+    )
+  )
+}
+
+#' @export
+geo_upscale.harp_list <- function(
+  x,
+  factor,
+  method              = "mean",
+  downsample_location = "bottom_left",
+  ...
+) {
+  as_harp_list(
+    lapply(x, geo_upscale, factor, method, downsample_location, ...)
+  )
+}
+
+
+# Upscale methods
+downsample <- function(x, res, nx, ny, location = "bottom_left", ...) {
+
+  x_max    <- res[1]
+  y_max    <- res[2]
+  x_centre <- ceiling(x_max / 2)
+  y_centre <- ceiling(y_max / 2)
+  start_ind <- switch(
+    location,
+    "random"        = ,
+    "bottom_left"   = list(x = 1, y = 1),
+    "bottom_centre" = list(x = x_centre, y = 1),
+    "bottom_right"  = list(x = x_max, y = 1),
+    "left_centre"   = list(x = 1, y = y_centre),
+    "centre"        = list(x = x_centre, y = y_centre),
+    "right_centre"  = list(x = x_max, y = y_centre),
+    "top_right"     = list(x = x_max, y = y_max),
+    "top_centre"    = list(x = x_centre, y = y_max),
+    "top_left"      = list(x = 1, y = y_max),
+    list(NA, NA)
+  )
+
+  if (any(sapply(start_ind, is.na))) {
+    locs <- c(
+      "bottom_left",
+      "bottom_centre",
+      "bottom_right",
+      "left_centre",
+      "centre",
+      "right_centre",
+      "top_right",
+      "top_centre",
+      "top_left",
+      "random"
+    )
+    cli::cli_abort(c(
+      "unknown downsample_location: {location}",
+      "i" = "{.arg downsample_location} must be one of:",
+      "{locs}"
+    ))
+  }
+
+  x_ind <- seq(start_ind[["x"]], length.out = nx, by = res[1])
+  y_ind <- seq(start_ind[["y"]], length.out = ny, by = res[2])
+
+  if (location != "random") {
+    return(x[x_ind, y_ind])
+  }
+
+  indices <- expand.grid(i = x_ind, j = y_ind)
+  indices[["i"]] <- indices[["i"]] +
+    sample(seq_len(res[1]) - 1, size = nrow(indices), replace = TRUE)
+  indices[["j"]] <- indices[["j"]] +
+    sample(seq_len(res[1]) - 1, size = nrow(indices), replace = TRUE)
+  indices[["k"]] <- vector_indices(x, as.matrix(indices))
+  array(x[indices[["k"]]], c(nx, ny))
+}
+
+vector_indices <- function(x, i) {
+  replace(x, seq_along(x), seq_along(x))[i]
+}
+
 ########################
 # Generalized function #
 ########################
@@ -802,6 +1001,11 @@ geo_xsection.harp_grid_df <- function(
 #' coordinate reference system.
 #' * `geo_zoom` is a special case of `geo_subgrid` whereby a sub domain of the
 #' data is extracted centred around a geographic point.
+#' * `geo_upscale` upscales data from a higher resolution grid to a coarser
+#' resolution grid using an integer upscaling factor. The default method is to
+#' take the mean of all high resolution pixels inside each coarse resolution
+#' pixels, though sampling using the "downsample" method is faster and likely
+#' sufficient for upscaling for raster raster plotting.
 #' * `geo_transform` is a generalized function that can be used in functions
 #' that take the type of geographic transformation as an argument.
 #'
@@ -820,7 +1024,11 @@ geo_xsection.harp_grid_df <- function(
 #' @param opts A list of options for the chosen transformation. The appropriate
 #'   \link{geo_opts} function should be used to generate this list.
 #' @param method The interpolation method. Can be "nearest" for nearest
-#'   neighbour, "bilinear", or "bicubic." The default is "bilinear".
+#'   neighbour, "bilinear", or "bicubic." The default is "bilinear". For
+#'   `geo_upscale`, can be any function that summarises a vector to a
+#'   single value and can found with \code{\link[base]{match.fun}}, the default
+#'   being "mean". A further option is "downsample", dwhich is described in the
+#'   argument for `downsample_location`.
 #' @param mask A mask to prevent grid points being used in the interpolation.
 #'   Should be on the same grid as `x` and grid points with values of 0 or FALSE
 #'   will be masked from the interpolation.
@@ -876,7 +1084,7 @@ check_numeric <- function(x, arg, caller = rlang::caller_env()) {
     value <- as.character(x)
     cli::cli_abort(c(
       "{.arg {arg}} must be numeric.",
-      "x" = "{.arg {arg}} = {value}"
+      "x" = "You've supplied a {.cls {class(x)}} vector."
     ), call = caller)
   }
 }
@@ -1171,5 +1379,20 @@ geo_opts_xsection <- function(
     method       = method,
     weights      = weights,
     keep_weights = keep_weights
+  )
+}
+
+#' @rdname geo_opts
+#' @inheritParams geo_transform
+#' @export
+geo_opts_upscale <- function(
+  factor,
+  method              = "mean",
+  downsample_location = "bottom_left"
+) {
+  list(
+    factor              = factor,
+    method              = method,
+    downsample_location = downsample_location
   )
 }

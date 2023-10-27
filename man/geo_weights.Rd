@@ -51,7 +51,11 @@ for the point, "lon" for the longitude of the point in decimal degrees and
 contain other columns, which will be retained in the output.}
 
 \item{method}{The interpolation method. Can be "nearest" for nearest
-neighbour, "bilinear", or "bicubic." The default is "bilinear".}
+neighbour, "bilinear", or "bicubic." The default is "bilinear". For
+\code{geo_upscale}, can be any function that summarises a vector to a
+single value and can found with \code{\link[base]{match.fun}}, the default
+being "mean". A further option is "downsample", dwhich is described in the
+argument for \code{downsample_location}.}
 
 \item{mask}{A mask to prevent grid points being used in the interpolation.
 Should be on the same grid as \code{x} and grid points with values of 0 or FALSE
