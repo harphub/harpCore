@@ -671,7 +671,7 @@ scale_param.data.frame <- function(x, scaling, new_units, mult = FALSE, col, ...
 
 #' @export
 scale_param.harp_df <- function(x, scaling, new_units, mult = FALSE, ...) {
-  regex <- "_mbr[[:digit:]]{3}|_det$"
+  regex <- "_mbr[[:digit:]]{3}|_det$|^fcst$|^forecast$|^anl$|^analysis$"
 
   op  <- `+`
   if (mult) {

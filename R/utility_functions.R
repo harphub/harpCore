@@ -250,3 +250,47 @@ parse_thresholds <- function(x) {
   }
   list(thresholds = x, quantiles = TRUE)
 }
+
+#' Combine groups to make a list of all possible verification groups
+#'
+#' This function is intended to define all possible group combinations for use
+#' in verification functions such as \code{\link[harpPoint]{det_verify}}. When
+#' `time_groups` are given, the function ensures that they appear in every
+#' group.
+#'
+#' @param time_groups Groups that could be used as a time axis in a plot. Can be
+#'   any combination of "lead_time", "valid_dttm" and "valid_hour".
+#' @param groups Other group columns to use in a verification.
+#'
+#' @return A list of group combinations
+#' @export
+#'
+#' @examples
+#' make_verif_groups("lead_time", c("fcst_cycle", "station_group"))
+#' make_verif_groups(
+#'   c("lead_time", "valid_dttm", "valid_hour"),
+#'   c("fcst_cycle", "station_group")
+#' )
+make_verif_groups <- function(time_groups, groups) {
+  time_groups  <- unique(time_groups)
+  poss_tm_grps <- c("lead_time", "valid_dttm", "valid_hour")
+  bad_tm_grps  <- setdiff(time_groups, poss_tm_grps)
+  if (length(bad_tm_grps) > 0) {
+    cli::cli_abort(c(
+      "Invalid value for {.arg time_groups}",
+      "x" = "You supplied the following invalid {.arg time_groups}: {bad_tm_grps}",
+      "i" = "{.arg time_groups} must be any combination of {poss_tm_grps}"
+    ))
+  }
+  groups <- unlist(
+    lapply(seq_along(groups), function(x) combn(groups, x, simplify = FALSE)),
+    recursive = FALSE
+  )
+  c(
+    as.list(time_groups),
+    unlist(
+      lapply(time_groups, function(x) lapply(groups, function(y) c(x, y))),
+      recursive = FALSE
+    )
+  )
+}
