@@ -863,7 +863,7 @@ decum.data.frame <- function(
     dplyr::if_any(
       {{cols}},
       ~if (is.list(.x)) {
-        !vapply(.x, is.null, logical(1))
+        vapply(.x, length, numeric(1)) > 0
       } else {
         !is.na(.x)
       }
