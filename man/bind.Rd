@@ -2,11 +2,7 @@
 % Please edit documentation in R/dplyr_methods.R
 \name{bind}
 \alias{bind}
-\title{#' @importFrom dplyr dplyr_reconstruct
-#' @export
-dplyr_reconstruct.harp_df <- function(data, ...) {
-as_harp_df(NextMethod())
-}}
+\title{Bind data frames in a list}
 \usage{
 bind(..., .id = NULL)
 }
@@ -20,19 +16,11 @@ the list in the resulting data frame}
 A data frame with the class of the first data frame in the list
 }
 \description{
-#' @importFrom dplyr dplyr_col_modify
-#' @export
-dplyr_col_modify.harp_df <- function(data, cols) {
-as_harp_df(NextMethod())
-}
-}
-\details{
-Bind data frames in a list
-
 \code{bind} is a wrapper around \code{\link[dplyr]{bind_rows}} with a
 dedicated method for harp_list objects. In all other cases
 \code{\link[dplyr]{bind_rows}} is called.
-
+}
+\details{
 For harp_list objects, the name of each element in the list is added to each
 data frame as a column, with the heading as given in the \code{.id}
 argument. For forecast data the prefix before "_det" for deteriministic

@@ -114,30 +114,40 @@ pull.harp_list <- function(.data, ...) {
 
 # harp_df methods
 
-#' @importFrom dplyr group_by
-#' @export
-group_by.harp_df <- function(.data, ...) {
-  as_harp_df(NextMethod())
-}
-
-#' @importFrom dplyr ungroup
-#' @export
-ungroup.harp_df <- function(x, ...) {
-  as_harp_df(NextMethod())
-}
-
-#' #' @importFrom dplyr dplyr_reconstruct
-#' #' @export
-#' dplyr_reconstruct.harp_df <- function(data, ...) {
-#'   as_harp_df(NextMethod())
-#' }
-#'
-#' #' @importFrom dplyr dplyr_col_modify
-#' #' @export
-#' dplyr_col_modify.harp_df <- function(data, cols) {
-#'   as_harp_df(NextMethod())
-#' }
-#'
+# # Can't get group_by to work in a package. The only solution is for users to
+# # run as_harp_df after grouping.
+# #' @importFrom dplyr group_by
+# #' @export
+# #group_by.harp_df <- function(.data, ...) {
+# #  .data <- dplyr::group_by(deharp(.data), ...)
+# #  if (is.element("valid_dttm", colnames(.data))) {
+# #    return(as_harp_df(.data))
+# #  }
+# #  .data
+# #}
+# #
+# ##' @importFrom dplyr ungroup
+# ##' @export
+# #ungroup.harp_df <- function(x, ...) {
+# #  x <- dplyr::ungroup(deharp(x), ...)
+# #  if (is.element("valid_dttm", colnames(x))) {
+# #    return(as_harp_df(x))
+# #  }
+# #  x
+# #}
+#
+# #' #' @importFrom dplyr dplyr_reconstruct
+# #' #' @export
+# #' dplyr_reconstruct.harp_df <- function(data, ...) {
+# #'   as_harp_df(NextMethod())
+# #' }
+# #'
+# #' #' @importFrom dplyr dplyr_col_modify
+# #' #' @export
+# #' dplyr_col_modify.harp_df <- function(data, cols) {
+# #'   as_harp_df(NextMethod())
+# #' }
+# #'
 
 #' Bind data frames in a list
 #'

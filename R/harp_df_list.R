@@ -743,7 +743,7 @@ decum.harp_det_point_df <- function(
   as_harp_df(
     dplyr::filter(
       .data,
-      dplyr::if_all({{cols}}, ~ !is.na(.x))
+      dplyr::if_any({{cols}}, ~ !is.na(.x))
     )
   )
 }
@@ -765,7 +765,7 @@ decum.harp_det_grid_df <- function(
   as_harp_df(
     dplyr::filter(
       .data,
-      dplyr::if_all({{cols}}, ~ !vapply(.x, is.null, TRUE))
+      dplyr::if_any({{cols}}, ~ !vapply(.x, is.null, TRUE))
     )
   )
 }
@@ -786,7 +786,7 @@ decum.harp_ens_point_df <- function(
   as_harp_df(
     dplyr::filter(
       .data,
-      dplyr::if_all({{cols}}, ~ !is.na(.x))
+      dplyr::if_any({{cols}}, ~ !is.na(.x))
     )
   )
 }
@@ -807,7 +807,7 @@ decum.harp_ens_grid_df <- function(
   as_harp_df(
     dplyr::filter(
       .data,
-      dplyr::if_all({{cols}}, ~ !vapply(.x, is.null, TRUE))
+      dplyr::if_any({{cols}}, ~ !vapply(.x, is.null, TRUE))
     )
   )
 }
@@ -840,7 +840,33 @@ decum.harp_anl_grid_df <- function(
   as_harp_df(
     dplyr::filter(
       .data,
-      dplyr::if_all({{cols}}, ~ !vapply(.x, is.null, TRUE))
+      dplyr::if_any({{cols}}, ~ !vapply(.x, is.null, TRUE))
+    )
+  )
+}
+
+#' @export
+decum.data.frame <- function(
+  .data,
+  decum_time,
+  cols      = dplyr::matches("_mbr[[:digit:]]+"),
+  time_col  = "lead_time",
+  group_col = c("fcst_dttm", "SID"),
+  df_name   = NULL,
+  ...
+) {
+  .data <- decum_df(
+    .data, decum_time, {{cols}}, {{time_col}}, {{group_col}}, df_name
+  )
+  dplyr::filter(
+    .data,
+    dplyr::if_any(
+      {{cols}},
+      ~if (is.list(.x)) {
+        !vapply(.x, is.null, logical(1))
+      } else {
+        !is.na(.x)
+      }
     )
   )
 }
@@ -1411,3 +1437,32 @@ common_cases.harp_list <- function(.fcst, ...) {
 
 }
 
+
+#' Remove harp classes
+#'
+#' In some cases you may need to remove harp classes from a data frame, for
+#' example if methods do not exist. Use this function to remove all harp related
+#' classes from the object
+#'
+#' @param x Any object.
+#'
+#' @return `x` with all harp classes removed.
+#' @export
+#'
+#' @examples
+#' class(det_point_df)
+#' class(deharp(det_point_df))
+deharp <- function(x) {
+  UseMethod("deharp")
+}
+
+#' @export
+deharp.default <- function(x) {
+  class(x) <- grep("harp_", class(x), value = TRUE, invert = TRUE)
+  x
+}
+
+#' @export
+deharp.harp_list <- function(x) {
+  (lapply(x, deharp))
+}
