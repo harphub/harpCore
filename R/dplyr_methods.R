@@ -109,7 +109,7 @@ arrange.harp_list <- function(.data, ..., .by_group = FALSE) {
 #' @importFrom dplyr pull
 #' @export
 pull.harp_list <- function(.data, ...) {
-  as_harp_list(lapply(.data, pull, ...))
+  lapply(.data, pull, ...)
 }
 
 # harp_df methods

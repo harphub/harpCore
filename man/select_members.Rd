@@ -4,7 +4,7 @@
 \alias{select_members}
 \title{Select ensemble members}
 \usage{
-select_members(.data, members, include_lagged = TRUE)
+select_members(.data, members, include_lagged = TRUE, invert = FALSE)
 }
 \arguments{
 \item{.data}{A data frame with ensemble members or a \code{harp_list}}
@@ -15,6 +15,9 @@ object.}
 
 \item{include_lagged}{Logical. Whether to include lagged ensemble members
 in the selection.}
+
+\item{invert}{Logical. If \code{TRUE} all members \strong{except} those provided
+in \code{members} are returned.}
 }
 \value{
 A data frame with the selected members or a \code{harp_list} of
@@ -37,4 +40,8 @@ select_members(ens_point_list, 0)
 
 # Different members can be selected from each data frame
 select_members(ens_point_list, list(a = 0, b = 1))
+
+# Deselect members with invert = TRUE
+select_members(ens_point_df, 0, invert = TRUE)
+select_members(ens_point_list, list(a = 0, b = 1), invert = TRUE)
 }

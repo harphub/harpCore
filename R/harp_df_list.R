@@ -81,6 +81,8 @@ unique_fcst_dttm <- function(.data) {
 #'   object.
 #' @param include_lagged Logical. Whether to include lagged ensemble members
 #'   in the selection.
+#' @param invert Logical. If `TRUE` all members \strong{except} those provided
+#'   in `members` are returned.
 #'
 #' @return A data frame with the selected members or a \code{harp_list} of
 #'   data frames with the selected ensemble members.
@@ -98,22 +100,34 @@ unique_fcst_dttm <- function(.data) {
 #'
 #' # Different members can be selected from each data frame
 #' select_members(ens_point_list, list(a = 0, b = 1))
-select_members <- function(.data, members, include_lagged = TRUE) {
+#'
+#' # Deselect members with invert = TRUE
+#' select_members(ens_point_df, 0, invert = TRUE)
+#' select_members(ens_point_list, list(a = 0, b = 1), invert = TRUE)
+select_members <- function(
+  .data, members, include_lagged = TRUE, invert = FALSE
+) {
   UseMethod("select_members")
 }
 
 #' @export
-select_members.harp_ens_point_df <- function(.data, members, include_lagged = TRUE) {
-  member_select(.data, members, include_lagged)
+select_members.harp_ens_point_df <- function(
+    .data, members, include_lagged = TRUE, invert = FALSE
+) {
+  member_select(.data, members, include_lagged, invert)
 }
 
 #' @export
-select_members.harp_ens_grid_df <- function(.data, members, include_lagged = TRUE) {
-  member_select(.data, members, include_lagged)
+select_members.harp_ens_grid_df <- function(
+  .data, members, include_lagged = TRUE, invert = FALSE
+) {
+  member_select(.data, members, include_lagged, invert)
 }
 
 #' @export
-select_members.harp_list <- function(.data, members, include_lagged = TRUE) {
+select_members.harp_list <- function(
+  .data, members, include_lagged = TRUE, invert = FALSE
+) {
 
   if (is.list(members)) {
 
@@ -163,14 +177,14 @@ select_members.harp_list <- function(.data, members, include_lagged = TRUE) {
 
   .data[names(members)] <- mapply(
     select_members, .data[names(members)], members,
-    MoreArgs = list(include_lagged = include_lagged),
+    MoreArgs = list(include_lagged = include_lagged, invert = invert),
     SIMPLIFY = FALSE
   )
   .data
 
 }
 
-member_select <- function(df, members, lag_inc) {
+member_select <- function(df, members, lag_inc, invert) {
   suffix    <- ifelse(lag_inc, "", "$")
   meta_cols <- grep("_mbr[[:digit:]]", colnames(df), invert = TRUE)
   data_cols <- lapply(
@@ -178,12 +192,17 @@ member_select <- function(df, members, lag_inc) {
     function(x) {
       grep(
         paste0("_mbr", formatC(x, width = 3, flag = "0"), suffix),
-        colnames(df)
+        colnames(df),
+        invert = invert
       )
     }
   )
-  data_cols <- unlist(data_cols[sapply(data_cols, length) != 0])
-  dplyr::select(df, dplyr::all_of(c(meta_cols, data_cols)))
+  if (invert) {
+    data_cols <- Reduce(intersect, data_cols)
+  } else {
+    data_cols <- unlist(data_cols[sapply(data_cols, length) != 0])
+  }
+  dplyr::select(df, dplyr::all_of(union(meta_cols, data_cols)))
 }
 
 
@@ -1359,6 +1378,245 @@ ens_prob.harp_list <- function(
   )
 }
 
+#' Compute the ensemble mean and variance
+#'
+#' `r lifecycle::badge("superseded")` This function is superseded by
+#' \code{\link[harpCore]{ens_stats}}. However, `ens_mean_and_var()` is still
+#' useful for computing the ensemble spread with a dropped member and is used by
+#' \code{\link[harpPoint]{ens_spread_and_skill}}.
+#'
+#' The ensemble mean and variance are computed and added as columns to tables in
+#' a \code{harp_df} object or `harp_list` object..
+#'
+#' @param .fcst A \code{harp_list} object, or a `harp_ens_point_df` or
+#'   `harp_ens_grid_df` data frame.
+#' @param mean_name The output column name for the ensemble mean
+#' @param var_name The output column name for the ensemble variance
+#' @param sd_name The output column name for the ensemble spread (standard
+#'   deviation)
+#' @param var_drop_member Which members to drop for the calculation of the
+#'   ensemble variance and standard deviation. For harp_fcst objects, this can
+#'   be a numeric scalar - in which case it is recycled for all forecast models;
+#'   a list or numeric vector of the same length as the harp_fcst object, or a
+#'   named list with the names corresponding to names in the harp_fcst object.
+#' @param ...
+#'
+#' @return A \code{harp_fcst} object with columns ens_mean and ens_var added to
+#'   the forecast tables.
+#' @export
+#'
+ens_mean_and_var <- function(
+    .fcst, mean_name = "ens_mean", var_name = "ens_var", sd_name = "ens_spread",
+  var_drop_member = NULL
+) {
+  lifecycle::deprecate_soft(
+    "0.1.0",
+    "ens_mean_and_var()",
+    "ens_stats()",
+    c("i" = paste(
+      "If you need to use `var_drop_member` continue to use",
+      "`ens_mean_and_var()`."
+    ))
+  )
+  UseMethod("ens_mean_and_var")
+}
+
+#' @export
+ens_mean_and_var.harp_ens_point_df <- function(
+    .fcst, mean_name = "ens_mean", var_name = "ens_var",
+  sd_name = "ens_spread", var_drop_member = NULL
+) {
+  col_names <- colnames(.fcst)
+  mean_name <- rlang::sym(mean_name)
+  var_name  <- rlang::sym(var_name)
+  sd_name   <- rlang::sym(sd_name)
+
+  if (length(grep("_mbr", col_names)) < 1) {
+    stop(".fcst column names must contain '_mbr' to indicate an ensemble", call. = FALSE)
+  }
+
+  drop_members <- "TheRegexShouldNeverExistInnit"
+
+  if (!is.null(var_drop_member)) {
+    if (!is.numeric(var_drop_member)) {
+      stop("`var_drop_member` must be numeric.", call. = FALSE)
+    }
+    drop_members <- paste(
+      paste0("_mbr", formatC(var_drop_member, width = 3, flag = "0"), "$"),
+      sep = "|"
+    )
+
+  }
+
+  member_data <- dplyr::select(.fcst, dplyr::contains("_mbr"))
+
+  .fcst <- dplyr::mutate(
+    .fcst,
+    !!mean_name := rowMeans(member_data),
+    !!var_name  := matrixStats::rowVars(as.matrix(member_data)),
+    !!sd_name   := sqrt(!!var_name)
+  )
+
+  if (!is.null(var_drop_member)) {
+    dm_var_name <- rlang::sym(paste0("dropped_members_", var_name))
+    dm_sd_name <- rlang::sym(paste0("dropped_members_", sd_name))
+    .fcst <- dplyr::mutate(
+      .fcst,
+      !!dm_var_name := matrixStats::rowVars(
+        as.matrix(dplyr::select(member_data, -dplyr::matches(drop_members)))
+      ),
+      !!dm_sd_name  := sqrt(!!dm_var_name)
+    )
+  }
+
+  .fcst
+
+}
+
+#' @export
+ens_mean_and_var.harp_ens_grid_df <- function(
+    .fcst, mean_name = "ens_mean", var_name = "ens_var",
+  sd_name = "ens_spread", var_drop_member = NULL
+) {
+  col_names <- colnames(.fcst)
+  mean_name <- rlang::sym(mean_name)
+  var_name  <- rlang::sym(var_name)
+  sd_name   <- rlang::sym(sd_name)
+
+  if (length(grep("_mbr", col_names)) < 1) {
+    stop(".fcst column names must contain '_mbr' to indicate an ensemble", call. = FALSE)
+  }
+
+  member_data <- lapply(
+    purrr::transpose(dplyr::select(.fcst, dplyr::contains("_mbr"))),
+    geolist
+  )
+
+  .fcst <- dplyr::mutate(
+    .fcst,
+    !!mean_name := do.call("c", lapply(member_data, mean)),
+    !!var_name  := do.call("c", lapply(member_data, variance)),
+    !!sd_name   := sqrt(!!var_name)
+  )
+
+  if (!is.null(var_drop_member)) {
+
+    drop_members <- "TheRegexShouldNeverExistInnit"
+
+    if (!is.numeric(var_drop_member)) {
+      stop("`var_drop_member` must be numeric.", call. = FALSE)
+    }
+    drop_members <- paste(
+      paste0("_mbr", formatC(var_drop_member, width = 3, flag = "0"), "$"),
+      sep = "|"
+    )
+
+    member_data <- lapply(
+      purrr::transpose(
+        dplyr::select(
+          .fcst, dplyr::contains("_mbr"), -dplyr::matches(drop_members)
+        )
+      ),
+      geolist
+    )
+
+    dm_var_name <- rlang::sym(paste0("dropped_members_", var_name))
+    dm_sd_name <- rlang::sym(paste0("dropped_members_", sd_name))
+    .fcst <- dplyr::mutate(
+      .fcst,
+      !!dm_var_name := matrixStats::rowVars(
+        as.matrix(dplyr::select(member_data, -dplyr::matches(drop_members)))
+      ),
+      !!dm_sd_name  := sqrt(!!dm_var_name)
+    )
+  }
+
+  .fcst
+
+}
+
+#' @export
+ens_mean_and_var.harp_list <- function(
+    .fcst, mean_name = "ens_mean", var_name = "ens_var",
+  sd_name = "ens_spread", var_drop_member = NULL
+) {
+
+  var_drop_member <- parse_member_drop(var_drop_member, names(.fcst))
+
+  structure(
+    purrr::map2(
+      .fcst, var_drop_member,
+      ~ens_mean_and_var(.x, mean_name, var_name, sd_name, var_drop_member = .y)
+    ),
+    class = "harp_fcst"
+  )
+}
+
+parse_member_drop <- function(x, nm) {
+
+  if (!is.null(names(x))) {
+    x <- as.list(x)
+  }
+
+  if (!is.list(x)) {
+    if (is.null(x)) {
+      return(sapply(nm, function(x) NULL, simplify = FALSE))
+    }
+    if (length(x) == 1) {
+      return(sapply(nm, function(.x) x, simplify = FALSE))
+    }
+    if (length(x) == length(nm)) {
+      x <- as.list(x)
+      names(x) <- nm
+      return(x)
+    }
+    stop("Bad input for `spread_exclude_member`", call. = FALSE)
+  }
+
+  if (is.null(names(x))) {
+
+    if (length(x) == length(nm)) {
+      names(x) <- nm
+      return(x)
+    }
+
+    stop(
+      "If `spread_exclude_member` is a list ",
+      "it must be the same length as `.fcst` or have names",
+      call. = FALSE
+    )
+
+  }
+
+  if (identical(sort(names(x)), sort(nm))) {
+    return(x[nm])
+  }
+
+  if (length(intersect(names(x), nm)) < 1) {
+    stop(
+      "spread_exclude_member: ",
+      paste(names(x), collapse = ", "),
+      " not found in `.fcst`.",
+      call. = FALSE
+    )
+  }
+
+  if (length(setdiff(names(x), nm)) > 0) {
+    stop(
+      "spread_exclude_member: ",
+      paste(setdiff(names(x), nm), collapse = ", "),
+      " not found in `.fcst`.",
+      call. = FALSE
+    )
+  }
+
+  x <- c(x, sapply(setdiff(nm, names(x)), function(x) NULL, simplify = FALSE))
+
+  x[nm]
+
+}
+
+
 #' Filter to common cases
 #'
 #' For a fair comparison of models, the verification should only be done for
@@ -1431,7 +1689,7 @@ common_cases.harp_list <- function(.fcst, ...) {
 
   suppressMessages(
     suppressWarnings(
-      harpCore::join_to_fcst(.fcst, common_rows, force = TRUE)
+      join_to_fcst(.fcst, common_rows, force = TRUE)
     )
   )
 
