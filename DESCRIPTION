@@ -1,9 +1,9 @@
 Package: harpCore
 Title: Core functions and methods for the harp ecosystem
-Version: 0.1.1
+Version: 0.2.0
 Authors@R: 
     person("Andrew", "Singleton", , "andrewts@met.no", role = c("aut", "cre"))
-Description: harp is an collection of packages for reading, analysing and 
+Description: harp is a collection of packages for reading, analysing and 
   visualizing meteorological, climate and ocean data. harpCore provides functions, 
   methods and data structures that are common to all harp packages. 
 License: Apache License (>= 2)
@@ -16,7 +16,7 @@ Suggests:
 Config/testthat/edition: 3
 Imports: 
     cli,
-    dplyr,
+    dplyr (>= 1.1),
     glue,
     magrittr,
     matrixStats,
@@ -26,7 +26,7 @@ Imports:
     Rcpp,
     rlang,
     tibble,
-    tidyr,
+    tidyr (>= 1.1),
     vctrs
 Remotes:
     harphub/meteogrid
