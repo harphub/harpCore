@@ -2,13 +2,47 @@
 % Please edit documentation in R/harp_geolist.R
 \name{geofield}
 \alias{geofield}
-\title{Title}
+\alias{geofield.harp_geolist}
+\alias{geofield.array}
+\title{Geofields}
 \usage{
 geofield(x, ...)
+
+\method{geofield}{harp_geolist}(x, i = 1, ...)
+
+\method{geofield}{array}(x, domain, ...)
 }
 \arguments{
-\item{...}{}
+\item{x}{A 2d array or \code{geolist}}
+
+\item{...}{Used for methods}
+
+\item{i}{The element of the \code{geolist} to extract.}
+
+\item{domain}{A \code{geodomain} with the same dimensions as \code{x}.}
+}
+\value{
+A \code{geofield}.
 }
 \description{
-Title
+A geofield is a georeferenced 2d-array. The coordinate reference system is
+stored as attributes to the array. Used together \code{\link{define_domain}},
+a geofield can be created from a 2d-array. Additionally, \code{geofield()} can be
+used to extract a \code{geofield} from a \code{\link{geolist}}. This can be
+useful for extracting a \code{geofield} in a pipeline.
+}
+\examples{
+my_domain <- define_domain(10, 60, 300, 10000)
+gfld <- geofield(
+  array(rnorm(300 * 300), c(300, 300)),
+  domain = my_domain
+)
+meteogrid::iview(gfld)
+
+geofield(det_grid_df$fcst, 4)
+# is equivalent to
+det_grid_df$fcst[[4]]
+# but geofield() can be used in a pipeline
+det_grid_df$fcst \%>\%
+  geofield(4)
 }

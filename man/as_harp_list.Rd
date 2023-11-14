@@ -23,22 +23,22 @@ Create a list of harp data frames
 \examples{
 as_harp_list(
   a = as_harp_df(data.frame(
-    valid_dttm = seq_dttm(2021010100, 2021010123),
+    valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
     a_det = runif(24)
   )),
   b = as_harp_df(data.frame(
-    valid_dttm = seq_dttm(2021010100, 2021010123),
+    valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
     b_det = runif(24)
   ))
 )
 as_harp_list(
   a = as_harp_df(data.frame(
-    valid_dttm = seq_dttm(2021010100, 2021010123),
+    valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
     a_mbr000  = runif(24),
     a_mbr001  = runif(24)
   )),
   b = as_harp_df(data.frame(
-    valid_dttm = seq_dttm(2021010100, 2021010123),
+    valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
     b_mbr000 = runif(24),
     b_mbr001 = runif(24)
   ))

@@ -81,6 +81,8 @@ unique_fcst_dttm <- function(.data) {
 #'   object.
 #' @param include_lagged Logical. Whether to include lagged ensemble members
 #'   in the selection.
+#' @param invert Logical. If `TRUE` all members \strong{except} those provided
+#'   in `members` are returned.
 #'
 #' @return A data frame with the selected members or a \code{harp_list} of
 #'   data frames with the selected ensemble members.
@@ -98,22 +100,34 @@ unique_fcst_dttm <- function(.data) {
 #'
 #' # Different members can be selected from each data frame
 #' select_members(ens_point_list, list(a = 0, b = 1))
-select_members <- function(.data, members, include_lagged = TRUE) {
+#'
+#' # Deselect members with invert = TRUE
+#' select_members(ens_point_df, 0, invert = TRUE)
+#' select_members(ens_point_list, list(a = 0, b = 1), invert = TRUE)
+select_members <- function(
+  .data, members, include_lagged = TRUE, invert = FALSE
+) {
   UseMethod("select_members")
 }
 
 #' @export
-select_members.harp_ens_point_df <- function(.data, members, include_lagged = TRUE) {
-  member_select(.data, members, include_lagged)
+select_members.harp_ens_point_df <- function(
+    .data, members, include_lagged = TRUE, invert = FALSE
+) {
+  member_select(.data, members, include_lagged, invert)
 }
 
 #' @export
-select_members.harp_ens_grid_df <- function(.data, members, include_lagged = TRUE) {
-  member_select(.data, members, include_lagged)
+select_members.harp_ens_grid_df <- function(
+  .data, members, include_lagged = TRUE, invert = FALSE
+) {
+  member_select(.data, members, include_lagged, invert)
 }
 
 #' @export
-select_members.harp_list <- function(.data, members, include_lagged = TRUE) {
+select_members.harp_list <- function(
+  .data, members, include_lagged = TRUE, invert = FALSE
+) {
 
   if (is.list(members)) {
 
@@ -163,14 +177,14 @@ select_members.harp_list <- function(.data, members, include_lagged = TRUE) {
 
   .data[names(members)] <- mapply(
     select_members, .data[names(members)], members,
-    MoreArgs = list(include_lagged = include_lagged),
+    MoreArgs = list(include_lagged = include_lagged, invert = invert),
     SIMPLIFY = FALSE
   )
   .data
 
 }
 
-member_select <- function(df, members, lag_inc) {
+member_select <- function(df, members, lag_inc, invert) {
   suffix    <- ifelse(lag_inc, "", "$")
   meta_cols <- grep("_mbr[[:digit:]]", colnames(df), invert = TRUE)
   data_cols <- lapply(
@@ -178,12 +192,17 @@ member_select <- function(df, members, lag_inc) {
     function(x) {
       grep(
         paste0("_mbr", formatC(x, width = 3, flag = "0"), suffix),
-        colnames(df)
+        colnames(df),
+        invert = invert
       )
     }
   )
-  data_cols <- unlist(data_cols[sapply(data_cols, length) != 0])
-  dplyr::select(df, dplyr::all_of(c(meta_cols, data_cols)))
+  if (invert) {
+    data_cols <- Reduce(intersect, data_cols)
+  } else {
+    data_cols <- unlist(data_cols[sapply(data_cols, length) != 0])
+  }
+  dplyr::select(df, dplyr::all_of(union(meta_cols, data_cols)))
 }
 
 
@@ -671,7 +690,7 @@ scale_param.data.frame <- function(x, scaling, new_units, mult = FALSE, col, ...
 
 #' @export
 scale_param.harp_df <- function(x, scaling, new_units, mult = FALSE, ...) {
-  regex <- "_mbr[[:digit:]]{3}|_det$"
+  regex <- "_mbr[[:digit:]]{3}|_det$|^fcst$|^forecast$|^anl$|^analysis$"
 
   op  <- `+`
   if (mult) {
@@ -698,12 +717,29 @@ scale_param.harp_list <- function(x, scaling, new_units, mult = FALSE, ...) {
 
 #' Decumulate accumulated variables
 #'
-#' @param .data
-#' @param decum_time
-#' @param cols
-#' @param time_col
-#' @param group_col
-#' @param df_name
+#' Many models store accumulated values as the amount accumulated since the
+#' start of the forecast. `decum()` decumulates those values to specific time
+#' periods. Note that the time periods are overlapping, such that for hourly
+#' data a (for example) 6-hour accumulation will be calculated every hour for
+#' the previous 6 hours rather than in consecutive 6-hour windows.
+#'
+#' @param .data A `harp_df` data fram or `harp_list`
+#' @param decum_time The time period to which to decumulate the data. If
+#'   numeric, it is considered to be in hours, otherwise a string with a number
+#'   followed by a unit. Units can be "s", for seconds; "m", for minutes; "h",
+#'   for hours; or "d", for days.
+#' @param cols Columns for which to do the decumulation. Uses the same semantics
+#'   as \code{\link[dplyr]{select}}.
+#' @param time_col The time column to use for calculating decumulation windows.
+#'   Uses the same semantics as \code{\link[dplyr]{select}}.
+#' @param group_col The columns to group the output by. Uses the same semantics
+#'   as \code{\link[dplyr]{select}}.
+#' @param df_name The name of the data frame - only really used to generate
+#'   error messages.
+#' @param ... Used for methods.
+#'
+#' @return An object of the same class as `.data` containing the decumulated
+#'   values.
 #' @export
 decum <- function(.data, decum_time, cols, time_col, group_col, df_name = NULL, ...) {
   UseMethod("decum")
@@ -726,7 +762,7 @@ decum.harp_det_point_df <- function(
   as_harp_df(
     dplyr::filter(
       .data,
-      dplyr::if_all({{cols}}, ~ !is.na(.x))
+      dplyr::if_any({{cols}}, ~ !is.na(.x))
     )
   )
 }
@@ -748,7 +784,7 @@ decum.harp_det_grid_df <- function(
   as_harp_df(
     dplyr::filter(
       .data,
-      dplyr::if_all({{cols}}, ~ !vapply(.x, is.null, TRUE))
+      dplyr::if_any({{cols}}, ~ !vapply(.x, is.null, TRUE))
     )
   )
 }
@@ -769,7 +805,7 @@ decum.harp_ens_point_df <- function(
   as_harp_df(
     dplyr::filter(
       .data,
-      dplyr::if_all({{cols}}, ~ !is.na(.x))
+      dplyr::if_any({{cols}}, ~ !is.na(.x))
     )
   )
 }
@@ -790,7 +826,7 @@ decum.harp_ens_grid_df <- function(
   as_harp_df(
     dplyr::filter(
       .data,
-      dplyr::if_all({{cols}}, ~ !vapply(.x, is.null, TRUE))
+      dplyr::if_any({{cols}}, ~ !vapply(.x, is.null, TRUE))
     )
   )
 }
@@ -823,7 +859,33 @@ decum.harp_anl_grid_df <- function(
   as_harp_df(
     dplyr::filter(
       .data,
-      dplyr::if_all({{cols}}, ~ !vapply(.x, is.null, TRUE))
+      dplyr::if_any({{cols}}, ~ !vapply(.x, is.null, TRUE))
+    )
+  )
+}
+
+#' @export
+decum.data.frame <- function(
+  .data,
+  decum_time,
+  cols      = dplyr::matches("_mbr[[:digit:]]+"),
+  time_col  = "lead_time",
+  group_col = c("fcst_dttm", "SID"),
+  df_name   = NULL,
+  ...
+) {
+  .data <- decum_df(
+    .data, decum_time, {{cols}}, {{time_col}}, {{group_col}}, df_name
+  )
+  dplyr::filter(
+    .data,
+    dplyr::if_any(
+      {{cols}},
+      ~if (is.list(.x)) {
+        vapply(.x, length, numeric(1)) > 0
+      } else {
+        !is.na(.x)
+      }
     )
   )
 }
@@ -898,10 +960,11 @@ decum_df <- function(
       df_name,
       ": Interval between lead times is not usable for decum_time = ",
       names(decum_time),
+      "\nNo decumulation done.",
       call.      = FALSE,
       immediate. = TRUE
     )
-    return(.fcst[FALSE, ])
+    return(.data[grep("data_times", colnames(.data), invert = TRUE)])
   }
   lag_rows <- decum_time / dt_res
 
@@ -921,21 +984,35 @@ decum_df <- function(
 }
 
 
-#' Title
+#' Compute basic ensemble statistics
 #'
-#' @param .fcst
-#' @param mean
-#' @param sd
-#' @param var
-#' @param min
-#' @param max
-#' @param keep_members
-#' @param ...
+#' Given a data frame of ensemble forecasts the ensemble mean, the ensemble
+#' standard deviation (spread), ensemble variance, ensemble minimum, and
+#' ensemble are calculated.
 #'
-#' @return
+#' By default only the ensemble mean and standard deviation are computed. Note
+#' that the ensemble median is not yet implemented for gridded data.
+#'
+#' @param .fcst A `harp_ens_grid_df` or `harp_ens_point_df` data frame, or a
+#'   `harp_list` containing data frames with those classes.
+#' @param mean Logical. Whether to compute the ensemble mean.
+#' @param sd Logical. Whether to compute the ensemble standard deviation.
+#' @param var Logical. Whether to compute the ensemble variance.
+#' @param min Logical. Whether to compute the ensemble minumum.
+#' @param max Logical. Whether to compute the ensemble maximum.
+#' @param keep_members Logical. Whether to keep the ensemble members in the
+#'   returned object. The default is to only return the statistics.
+#' @param ... Not used.
+#'
+#' @return An object of the same class as `.fcst` with columns for the ensemble
+#'   statistics
 #' @export
 #'
 #' @examples
+#' ens_stats(ens_point_df)
+#' ens_stats(ens_point_df, keep_members = TRUE)
+#' ens_stats(ens_point_df, var = TRUE, min = TRUE, max = TRUE)
+#' ens_stats(ens_grid_list)
 ens_stats <- function(
   .fcst,
   mean         = TRUE,
@@ -1007,6 +1084,8 @@ ens_stats.harp_ens_grid_df <- function(
 
 }
 
+#' @rdname ens_stats
+#' @param median Logical. Whether to compute the ensemble median.
 #' @export
 ens_stats.harp_ens_point_df <- function(
     .fcst,
@@ -1015,9 +1094,9 @@ ens_stats.harp_ens_point_df <- function(
     var          = FALSE,
     min          = FALSE,
     max          = FALSE,
-    median       = FALSE,
     keep_members = FALSE,
-    ...
+    median       = FALSE,
+  ...
 ) {
 
   stats <- c(mean, sd, var, min, max, median)
@@ -1087,8 +1166,8 @@ ens_stats.harp_list <- function(
   var          = FALSE,
   min          = FALSE,
   max          = FALSE,
-  median       = FALSE,
   keep_members = FALSE,
+  median       = FALSE,
   ...
 ) {
   as_harp_list(
@@ -1107,6 +1186,60 @@ ens_stats.harp_list <- function(
   )
 }
 
+#' Compute the ensemble probability for a threshold
+#'
+#' The probability for a threshold for an ensemble is computed. This is by
+#' default for threshold exceedence (P(fcst >= threshold)), but the probability
+#' for being below the threshold, or between or outside of two thresholds can
+#' also be calculated.
+#'
+#' Note that when a `geolist` is passed to the function, each element of the
+#' `geolist` is assumed to be an ensemble member.
+#'
+#' @param x A `harp_ens_grid_df` or `harp_ens_point_df` data frame, a `geolist`,
+#'   or a `harp_list` containing ensemble data frames.
+#' @inheritParams nbhd_smooth
+#' @param ... Used for methods.
+#' @return An object of the same class as `x` with the probabilities computed
+#' @export
+#'
+#' @examples
+#' p_ge_0.5 <- ens_prob(ens_grid_df, 0.5)
+#' image(p_ge_0.5$prob_ge_0.5[[1]])
+#'
+#' p_le_0.1 <- ens_prob(ens_grid_df, 0.1, comparator = "le")
+#' image(p_le_0.1$prob_le_0.1[[1]])
+#'
+#' p_btw_0.25_0.75 <- ens_prob(
+#'   ens_grid_df, c(0.25, 0.75), comparator = "between"
+#' )
+#' image(p_btw_0.25_0.75$prob_between_0.25_0.75[[1]])
+ens_prob <- function(
+  x,
+  threshold    = 0,
+  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+  include_low  = TRUE,
+  include_high = TRUE,
+  ...
+) {
+  UseMethod("ens_prob")
+}
+
+#' @export
+ens_prob.harp_geolist <- function(
+    x,
+  threshold    = 0,
+  comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
+  include_low  = TRUE,
+  include_high = TRUE,
+  ...
+) {
+  mean(nbhd_smooth(x, 0, threshold, comparator, include_low, include_high))
+}
+
+
+
+#' @inheritParams geo_transform
 #' @export
 ens_prob.harp_ens_grid_df <- function(
   x,
@@ -1135,7 +1268,10 @@ ens_prob.harp_ens_grid_df <- function(
   )
 
   colnames(res)[colnames(res) == "prob"] <- paste(
-    "prob", comparator, threshold, sep = "_"
+    "prob",
+    comparator,
+    paste(threshold,  collapse = "_"),
+    sep = "_"
   )
 
   if (length(unique(res[["sub_model"]])) < 2) {
@@ -1240,4 +1376,351 @@ ens_prob.harp_list <- function(
       ...
     )
   )
+}
+
+#' Compute the ensemble mean and variance
+#'
+#' `r lifecycle::badge("superseded")` This function is superseded by
+#' \code{\link[harpCore]{ens_stats}}. However, `ens_mean_and_var()` is still
+#' useful for computing the ensemble spread with a dropped member and is used by
+#' \code{\link[harpPoint]{ens_spread_and_skill}}.
+#'
+#' The ensemble mean and variance are computed and added as columns to tables in
+#' a \code{harp_df} object or `harp_list` object..
+#'
+#' @param .fcst A \code{harp_list} object, or a `harp_ens_point_df` or
+#'   `harp_ens_grid_df` data frame.
+#' @param mean_name The output column name for the ensemble mean
+#' @param var_name The output column name for the ensemble variance
+#' @param sd_name The output column name for the ensemble spread (standard
+#'   deviation)
+#' @param var_drop_member Which members to drop for the calculation of the
+#'   ensemble variance and standard deviation. For harp_fcst objects, this can
+#'   be a numeric scalar - in which case it is recycled for all forecast models;
+#'   a list or numeric vector of the same length as the harp_fcst object, or a
+#'   named list with the names corresponding to names in the harp_fcst object.
+#' @param ...
+#'
+#' @return A \code{harp_fcst} object with columns ens_mean and ens_var added to
+#'   the forecast tables.
+#' @export
+#'
+ens_mean_and_var <- function(
+    .fcst, mean_name = "ens_mean", var_name = "ens_var", sd_name = "ens_spread",
+  var_drop_member = NULL
+) {
+  lifecycle::deprecate_soft(
+    "0.1.0",
+    "ens_mean_and_var()",
+    "ens_stats()",
+    c("i" = paste(
+      "If you need to use `var_drop_member` continue to use",
+      "`ens_mean_and_var()`."
+    ))
+  )
+  UseMethod("ens_mean_and_var")
+}
+
+#' @export
+ens_mean_and_var.harp_ens_point_df <- function(
+    .fcst, mean_name = "ens_mean", var_name = "ens_var",
+  sd_name = "ens_spread", var_drop_member = NULL
+) {
+  col_names <- colnames(.fcst)
+  mean_name <- rlang::sym(mean_name)
+  var_name  <- rlang::sym(var_name)
+  sd_name   <- rlang::sym(sd_name)
+
+  if (length(grep("_mbr", col_names)) < 1) {
+    stop(".fcst column names must contain '_mbr' to indicate an ensemble", call. = FALSE)
+  }
+
+  drop_members <- "TheRegexShouldNeverExistInnit"
+
+  if (!is.null(var_drop_member)) {
+    if (!is.numeric(var_drop_member)) {
+      stop("`var_drop_member` must be numeric.", call. = FALSE)
+    }
+    drop_members <- paste(
+      paste0("_mbr", formatC(var_drop_member, width = 3, flag = "0"), "$"),
+      sep = "|"
+    )
+
+  }
+
+  member_data <- dplyr::select(.fcst, dplyr::contains("_mbr"))
+
+  .fcst <- dplyr::mutate(
+    .fcst,
+    !!mean_name := rowMeans(member_data),
+    !!var_name  := matrixStats::rowVars(as.matrix(member_data)),
+    !!sd_name   := sqrt(!!var_name)
+  )
+
+  if (!is.null(var_drop_member)) {
+    dm_var_name <- rlang::sym(paste0("dropped_members_", var_name))
+    dm_sd_name <- rlang::sym(paste0("dropped_members_", sd_name))
+    .fcst <- dplyr::mutate(
+      .fcst,
+      !!dm_var_name := matrixStats::rowVars(
+        as.matrix(dplyr::select(member_data, -dplyr::matches(drop_members)))
+      ),
+      !!dm_sd_name  := sqrt(!!dm_var_name)
+    )
+  }
+
+  .fcst
+
+}
+
+#' @export
+ens_mean_and_var.harp_ens_grid_df <- function(
+    .fcst, mean_name = "ens_mean", var_name = "ens_var",
+  sd_name = "ens_spread", var_drop_member = NULL
+) {
+  col_names <- colnames(.fcst)
+  mean_name <- rlang::sym(mean_name)
+  var_name  <- rlang::sym(var_name)
+  sd_name   <- rlang::sym(sd_name)
+
+  if (length(grep("_mbr", col_names)) < 1) {
+    stop(".fcst column names must contain '_mbr' to indicate an ensemble", call. = FALSE)
+  }
+
+  member_data <- lapply(
+    purrr::transpose(dplyr::select(.fcst, dplyr::contains("_mbr"))),
+    geolist
+  )
+
+  .fcst <- dplyr::mutate(
+    .fcst,
+    !!mean_name := do.call("c", lapply(member_data, mean)),
+    !!var_name  := do.call("c", lapply(member_data, variance)),
+    !!sd_name   := sqrt(!!var_name)
+  )
+
+  if (!is.null(var_drop_member)) {
+
+    drop_members <- "TheRegexShouldNeverExistInnit"
+
+    if (!is.numeric(var_drop_member)) {
+      stop("`var_drop_member` must be numeric.", call. = FALSE)
+    }
+    drop_members <- paste(
+      paste0("_mbr", formatC(var_drop_member, width = 3, flag = "0"), "$"),
+      sep = "|"
+    )
+
+    member_data <- lapply(
+      purrr::transpose(
+        dplyr::select(
+          .fcst, dplyr::contains("_mbr"), -dplyr::matches(drop_members)
+        )
+      ),
+      geolist
+    )
+
+    dm_var_name <- rlang::sym(paste0("dropped_members_", var_name))
+    dm_sd_name <- rlang::sym(paste0("dropped_members_", sd_name))
+    .fcst <- dplyr::mutate(
+      .fcst,
+      !!dm_var_name := matrixStats::rowVars(
+        as.matrix(dplyr::select(member_data, -dplyr::matches(drop_members)))
+      ),
+      !!dm_sd_name  := sqrt(!!dm_var_name)
+    )
+  }
+
+  .fcst
+
+}
+
+#' @export
+ens_mean_and_var.harp_list <- function(
+    .fcst, mean_name = "ens_mean", var_name = "ens_var",
+  sd_name = "ens_spread", var_drop_member = NULL
+) {
+
+  var_drop_member <- parse_member_drop(var_drop_member, names(.fcst))
+
+  structure(
+    purrr::map2(
+      .fcst, var_drop_member,
+      ~ens_mean_and_var(.x, mean_name, var_name, sd_name, var_drop_member = .y)
+    ),
+    class = "harp_fcst"
+  )
+}
+
+parse_member_drop <- function(x, nm) {
+
+  if (!is.null(names(x))) {
+    x <- as.list(x)
+  }
+
+  if (!is.list(x)) {
+    if (is.null(x)) {
+      return(sapply(nm, function(x) NULL, simplify = FALSE))
+    }
+    if (length(x) == 1) {
+      return(sapply(nm, function(.x) x, simplify = FALSE))
+    }
+    if (length(x) == length(nm)) {
+      x <- as.list(x)
+      names(x) <- nm
+      return(x)
+    }
+    stop("Bad input for `spread_exclude_member`", call. = FALSE)
+  }
+
+  if (is.null(names(x))) {
+
+    if (length(x) == length(nm)) {
+      names(x) <- nm
+      return(x)
+    }
+
+    stop(
+      "If `spread_exclude_member` is a list ",
+      "it must be the same length as `.fcst` or have names",
+      call. = FALSE
+    )
+
+  }
+
+  if (identical(sort(names(x)), sort(nm))) {
+    return(x[nm])
+  }
+
+  if (length(intersect(names(x), nm)) < 1) {
+    stop(
+      "spread_exclude_member: ",
+      paste(names(x), collapse = ", "),
+      " not found in `.fcst`.",
+      call. = FALSE
+    )
+  }
+
+  if (length(setdiff(names(x), nm)) > 0) {
+    stop(
+      "spread_exclude_member: ",
+      paste(setdiff(names(x), nm), collapse = ", "),
+      " not found in `.fcst`.",
+      call. = FALSE
+    )
+  }
+
+  x <- c(x, sapply(setdiff(nm, names(x)), function(x) NULL, simplify = FALSE))
+
+  x[nm]
+
+}
+
+
+#' Filter to common cases
+#'
+#' For a fair comparison of models, the verification should only be done for
+#' dates and locations that are common to all models. \code{common_cases} takes
+#' a harp_list object as input and then identifies and filters to only those
+#' cases that are common to all of the forecast models in the harp_list object.
+#' By default this is done with the SID, fcst_dttm and lead_time columns, but
+#' extra columns can be added via `...`. If one of the columns is a vertical
+#' coordinate ("p", "z", "ml" for pressure, height and model level
+#' respectively), that column will also be included.
+#'
+#' @param .fcst A harp_list object
+#' @param ... Extra columns from which to determine the common cases. To remove
+#'   one of the default columns from the test use -<col>.
+#'
+#' @return The input data frame with only the common stations and forecast dates
+#'   for each forecast model selected.
+#' @export
+common_cases <- function(.fcst, ...) {
+  UseMethod("common_cases")
+}
+
+#' @export
+common_cases.harp_df <- function(.fcst, ...) {
+  .fcst
+}
+
+#' @export
+common_cases.harp_list <- function(.fcst, ...) {
+
+  if (length(.fcst) < 2) {
+    return(.fcst)
+  }
+
+  common_cols <- c("SID", "fcst_dttm", "lead_time", "p", "z", "ml")
+
+  common_rows <- lapply(
+    .fcst,
+    function(x) {
+      dplyr::arrange(
+        dplyr::distinct(
+          dplyr::select(
+            x,
+            dplyr::any_of(common_cols),
+            ...
+          )
+        ),
+        dplyr::across(dplyr::any_of(common_cols)),
+        ...
+      )
+    }
+  )
+
+  all_identical <- all(
+    purrr::map2_lgl(
+      1:(length(common_rows) - 1),
+      2:length(common_rows),
+      ~identical(common_rows[[.x]], common_rows[[.y]])
+    )
+  )
+
+  if (all_identical) {
+    return(.fcst)
+  }
+
+  common_rows <- Reduce(
+    function(x, y) suppressMessages(dplyr::inner_join(x, y)),
+    common_rows
+  )
+
+  suppressMessages(
+    suppressWarnings(
+      join_to_fcst(.fcst, common_rows, force = TRUE)
+    )
+  )
+
+}
+
+
+#' Remove harp classes
+#'
+#' In some cases you may need to remove harp classes from a data frame, for
+#' example if methods do not exist. Use this function to remove all harp related
+#' classes from the object
+#'
+#' @param x Any object.
+#'
+#' @return `x` with all harp classes removed.
+#' @export
+#'
+#' @examples
+#' class(det_point_df)
+#' class(deharp(det_point_df))
+deharp <- function(x) {
+  UseMethod("deharp")
+}
+
+#' @export
+deharp.default <- function(x) {
+  class(x) <- grep("harp_", class(x), value = TRUE, invert = TRUE)
+  x
+}
+
+#' @export
+deharp.harp_list <- function(x) {
+  (lapply(x, deharp))
 }

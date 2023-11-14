@@ -6,6 +6,36 @@
 \usage{
 decum(.data, decum_time, cols, time_col, group_col, df_name = NULL, ...)
 }
+\arguments{
+\item{.data}{A \code{harp_df} data fram or \code{harp_list}}
+
+\item{decum_time}{The time period to which to decumulate the data. If
+numeric, it is considered to be in hours, otherwise a string with a number
+followed by a unit. Units can be "s", for seconds; "m", for minutes; "h",
+for hours; or "d", for days.}
+
+\item{cols}{Columns for which to do the decumulation. Uses the same semantics
+as \code{\link[dplyr]{select}}.}
+
+\item{time_col}{The time column to use for calculating decumulation windows.
+Uses the same semantics as \code{\link[dplyr]{select}}.}
+
+\item{group_col}{The columns to group the output by. Uses the same semantics
+as \code{\link[dplyr]{select}}.}
+
+\item{df_name}{The name of the data frame - only really used to generate
+error messages.}
+
+\item{...}{Used for methods.}
+}
+\value{
+An object of the same class as \code{.data} containing the decumulated
+values.
+}
 \description{
-Decumulate accumulated variables
+Many models store accumulated values as the amount accumulated since the
+start of the forecast. \code{decum()} decumulates those values to specific time
+periods. Note that the time periods are overlapping, such that for hourly
+data a (for example) 6-hour accumulation will be calculated every hour for
+the previous 6 hours rather than in consecutive 6-hour windows.
 }

@@ -39,12 +39,7 @@
 as_str_dttm <- function(x) {
   x <- as_YMDhms(x)
 
-  trailing_0s <- min(
-    sapply(
-      regmatches(x, gregexpr('\\(?[0]+', x)),
-      function(y) nchar(y[length(y)])
-    )
-  )
+  trailing_0s <- min(nchar(x) - nchar(sub("0*$", "", x)))
 
   if (!trailing_0s %% 2 == 0) {
     trailing_0s <- trailing_0s - 1

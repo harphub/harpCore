@@ -2,13 +2,88 @@
 % Please edit documentation in R/harp_geolist.R
 \name{geolist}
 \alias{geolist}
-\title{Title}
+\alias{is_geolist}
+\alias{variance}
+\alias{std_dev}
+\title{Geolists}
 \usage{
 geolist(..., domain = NULL)
+
+is_geolist(x)
+
+variance(x, na.rm = FALSE, ...)
+
+std_dev(x, na.rm = FALSE, ...)
 }
 \arguments{
-\item{domain}{}
+\item{...}{geofields or a list containing geofields}
+
+\item{domain}{Typically not used, since the domain will be obtained from the
+geofields}
+
+\item{x}{An object}
+
+\item{na.rm}{Logical. Whether to remove \code{NA}s before calculation.}
+}
+\value{
+A list of geofields on the same domain with class \code{harp_geolist}
 }
 \description{
-Title
+A \code{geolist} is a list of \code{\link{geofield}s} that are on the same domain.
+The main purpose of a \code{geolist} is to be used as a column in a data frame.
+}
+\details{
+A number of methods are available for \code{geolist}s that reduce the \code{geolist} to
+a \code{geolist} containing a single \code{geofield}. These include:
+\itemize{
+\item \code{mean} - element-wise mean of the \code{geolist}
+\item \code{std_dev} - element-wise standard deviation of the \code{geolist}
+\item \code{variance} element-wise variance of the \code{geolist}
+\item \code{min} - element-wise minimum of the \code{geolist}
+\item \code{max} - element-wise maximum of the \code{geolist}
+\item \code{cumsum} - element-wise cumulative sum of the \code{geolist}
+\item \code{cumprod} - element-wise cumulative product of the \code{geolist}
+\item \code{cummin} - element-wise cumulative minimum of the \code{geolist}
+\item \code{cummax} - element-wise cumulative maximum of the \code{geolist}
+\item \code{any} - element-wise any of a logical \code{geolist} is TRUE
+\item \code{all} - element-wise all of a logical \code{geolist} is TRUE
+}
+
+Note that the R stats functions \code{\link[stats]{sd}} and
+\code{\link[stats]{var}} cannot be used on \code{geolist}s since they are not
+implemented as methods, so \code{std_dev} and \code{variance} must be used instead.
+
+In addition most of R's generic math and logic functions work with
+\code{geolist}s.
+
+\code{is_geolist()} checks if the argument is a valid geolist.
+}
+\examples{
+# Define a domain
+my_domain <- define_domain(10, 60, 300, 10000)
+
+# geolist from indivdual geofields
+geolist(
+  geofield(array(rnorm(300 * 300), c(300, 300)), domain = my_domain),
+  geofield(array(rnorm(300 * 300), c(300, 300)), domain = my_domain)
+)
+
+# geolist from a list of geofields
+gfld <- lapply(
+  1:10,
+  function(x) geofield(
+    array(runif(300 * 300), c(300, 300)), domain = my_domain
+  )
+)
+glst <- geolist(gfld)
+glst
+
+# Summarise geolist to a single geofield
+mean(glst)
+std_dev(glst)
+variance(glst)
+min(glst)
+max(glst)
+any(glst > 0.9)
+all(glst > 0.25)
 }

@@ -186,22 +186,22 @@ print.harp_anl_xs_df <- function(x, ...) {
 #' @examples
 #' as_harp_list(
 #'   a = as_harp_df(data.frame(
-#'     valid_dttm = seq_dttm(2021010100, 2021010123),
+#'     valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
 #'     a_det = runif(24)
 #'   )),
 #'   b = as_harp_df(data.frame(
-#'     valid_dttm = seq_dttm(2021010100, 2021010123),
+#'     valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
 #'     b_det = runif(24)
 #'   ))
 #' )
 #' as_harp_list(
 #'   a = as_harp_df(data.frame(
-#'     valid_dttm = seq_dttm(2021010100, 2021010123),
+#'     valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
 #'     a_mbr000  = runif(24),
 #'     a_mbr001  = runif(24)
 #'   )),
 #'   b = as_harp_df(data.frame(
-#'     valid_dttm = seq_dttm(2021010100, 2021010123),
+#'     valid_dttm = as_dttm(seq_dttm(2021010100, 2021010123)),
 #'     b_mbr000 = runif(24),
 #'     b_mbr001 = runif(24)
 #'   ))
@@ -288,12 +288,14 @@ as_det.harp_ens_point_df <- function(x, member = NULL, sub_model = NULL) {
   }
 
   if (num_members == 1) {
-    return(as_harp_df(
-      dplyr::rename_with(x, ~"forecast", dplyr::matches("_mbr[[:digit:]]{3}"))
-    ))
+    if (is.null(member)) {
+      member <- sub(
+        "[[:graph:]]*_(?=mbr[[:digit:]]{3})", "", member_cols, perl = TRUE
+      )
+    }
   }
 
-  if (is.null(member)) {
+  if (is.null(member) && num_members > 1) {
     cli::cli_abort(c(
       "Must specify a member for enesmbles with more than 1 member:",
       "i" = "There {?is/are} are {num_members} member{?s} in {.arg x}.",
@@ -394,4 +396,77 @@ as_det.harp_list <- function(x, member = NULL, sub_model = NULL) {
 
   x[ens_df] <- lapply(x[ens_df], as_det, member, sub_model)
   x
+}
+
+# Print method for harp_verif
+#' @export
+print.harp_verif <- function(x, n = NULL, ...) {
+  invisible(
+    mapply(
+      function(x, y) {
+        cat(cli::col_green(paste0("::", y, ":: ")))
+        print(x, n = n)
+        cat("\n")
+      },
+      x, names(x)
+    )
+  )
+  parameter <- paste(Reduce(union, attr(x, "parameter")), collapse = ", ")
+  dttm <- Reduce(union, attr(x, "dttm"))
+  dttm_range <- format(
+    harpCore::as_dttm(range(dttm)),
+    "%R %Z %d %b %Y"
+  )
+  stations <- Reduce(union, attr(x, "stations"))
+  num_stations <- length(stations)
+  groupings <- attr(x, "group_vars")
+  if (!is.list(groupings)) {
+    groupings <- list(groupings)
+  }
+  if (all(vapply(groupings, is.list, logical(1)))) {
+    groupings <- purrr::flatten(groupings)
+  }
+  groupings <- lapply(
+    groupings,
+    function(g) g[vapply(g, nchar, integer(1)) > 0]
+  )
+  groupings <- groupings[vapply(groupings, length, integer(1)) > 0]
+  cat(
+    cli::col_cyan("--harp verification for "),
+    cli::col_magenta(parameter),
+    cli::col_cyan("--"),
+    sep = ""
+  )
+  cat(
+    "\n",
+    cli::col_cyan("# for forecasts from"),
+    cli::col_magenta(dttm_range[1]),
+    cli::col_cyan("to"),
+    cli::col_magenta(dttm_range[2])
+  )
+  if (num_stations > 0) {
+    cat(
+      "\n",
+      cli::col_cyan("# using"),
+      cli::col_magenta(num_stations),
+      cli::col_cyan("observation stations")
+    )
+  }
+  if (length(groupings) > 0) {
+    cat("\n", cli::col_cyan("# for verification groups: "))
+    invisible(
+      lapply(
+        groupings,
+        function(g) {
+          g <- glue::glue_collapse(g, sep = ", ", last = " & ")
+          cat("\n   ", cli::col_cyan("->"), cli::col_magenta(g))
+        }
+      )
+    )
+    cat("\n")
+    cli::cli_inform(c(
+      "i" = cli::col_silver("use `attributes()` to see detailed metadata")
+    ))
+  }
+
 }

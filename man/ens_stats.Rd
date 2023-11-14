@@ -2,7 +2,8 @@
 % Please edit documentation in R/harp_df_list.R
 \name{ens_stats}
 \alias{ens_stats}
-\title{Title}
+\alias{ens_stats.harp_ens_point_df}
+\title{Compute basic ensemble statistics}
 \usage{
 ens_stats(
   .fcst,
@@ -14,10 +15,56 @@ ens_stats(
   keep_members = FALSE,
   ...
 )
+
+\method{ens_stats}{harp_ens_point_df}(
+  .fcst,
+  mean = TRUE,
+  sd = TRUE,
+  var = FALSE,
+  min = FALSE,
+  max = FALSE,
+  keep_members = FALSE,
+  median = FALSE,
+  ...
+)
 }
 \arguments{
-\item{...}{}
+\item{.fcst}{A \code{harp_ens_grid_df} or \code{harp_ens_point_df} data frame, or a
+\code{harp_list} containing data frames with those classes.}
+
+\item{mean}{Logical. Whether to compute the ensemble mean.}
+
+\item{sd}{Logical. Whether to compute the ensemble standard deviation.}
+
+\item{var}{Logical. Whether to compute the ensemble variance.}
+
+\item{min}{Logical. Whether to compute the ensemble minumum.}
+
+\item{max}{Logical. Whether to compute the ensemble maximum.}
+
+\item{keep_members}{Logical. Whether to keep the ensemble members in the
+returned object. The default is to only return the statistics.}
+
+\item{...}{Not used.}
+
+\item{median}{Logical. Whether to compute the ensemble median.}
+}
+\value{
+An object of the same class as \code{.fcst} with columns for the ensemble
+statistics
 }
 \description{
-Title
+Given a data frame of ensemble forecasts the ensemble mean, the ensemble
+standard deviation (spread), ensemble variance, ensemble minimum, and
+ensemble are calculated.
+}
+\details{
+By default only the ensemble mean and standard deviation are computed. Note
+that the ensemble median is not yet implemented for gridded data.
+}
+\examples{
+ens_stats(ens_point_df)
+ens_stats(ens_point_df, keep_members = TRUE)
+ens_stats(ens_point_df, var = TRUE, min = TRUE, max = TRUE)
+ens_stats(ens_grid_list)
 }
