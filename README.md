@@ -1,9 +1,6 @@
 # harpCore
 *Core functions and methods for the harp ecosystem*
 
-**NOTE: THIS PACKAGE ISN'T YET A PART OF harp**, but will be in the next major 
-release.
-
 This package underlies everything in harp. It defines all of the classes, 
 generics and some methods used in the other harp packages, as well as some functions 
 that are needed in more than one of the harp packages. The most important classes 
