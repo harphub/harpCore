@@ -123,8 +123,8 @@ implemented as methods, so <code>std_dev</code> and <code>variance</code> must b
 <span class="r-in"><span>  <span class="fu"><a href="geofield.html">geofield</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/array.html" class="external-link">array</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/Normal.html" class="external-link">rnorm</a></span><span class="op">(</span><span class="fl">300</span> <span class="op">*</span> <span class="fl">300</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">300</span>, <span class="fl">300</span><span class="op">)</span><span class="op">)</span>, domain <span class="op">=</span> <span class="va">my_domain</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">&lt;harp_geolist[2]&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;numeric geofield [300 x 300] Min = <span style="color: #BB0000;">-4.111</span> Max = 4.528 Mean = <span style="color: #BB0000;">-0.004</span>&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [[2]] &lt;numeric geofield [300 x 300] Min = <span style="color: #BB0000;">-4.041</span> Max = 3.990 Mean = 0.002&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;numeric geofield [300 x 300] Min = <span style="color: #BB0000;">-4.830</span> Max = 4.524 Mean = <span style="color: #BB0000;">-0.001</span>&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [[2]] &lt;numeric geofield [300 x 300] Min = <span style="color: #BB0000;">-4.508</span> Max = 4.908 Mean = <span style="color: #BB0000;">-0.004</span>&gt;</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># geolist from a list of geofields</span></span></span>
 <span class="r-in"><span><span class="va">gfld</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span></span></span>
@@ -136,39 +136,39 @@ implemented as methods, so <code>std_dev</code> and <code>variance</code> must b
 <span class="r-in"><span><span class="va">glst</span> <span class="op">&lt;-</span> <span class="fu">geolist</span><span class="op">(</span><span class="va">gfld</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">glst</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">&lt;harp_geolist[10]&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [[1]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.499&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [[2]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.499&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [[3]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.501&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [[4]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.501&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [[5]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.499&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [[6]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.502&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [[7]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.501&gt;</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [[8]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.501&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [[1]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.500&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [[2]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.500&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [[3]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.499&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [[4]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.503&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [[5]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.500&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [[6]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.499&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [[7]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.500&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [[8]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.500&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  [[9]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.500&gt;</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [[10]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 1.000 Mean = 0.500&gt;</span>
 <span class="r-in"><span></span></span>
 <span class="r-in"><span><span class="co"># Summarise geolist to a single geofield</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">glst</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">&lt;harp_geolist[1]&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;numeric geofield [300 x 300] Min = 0.163 Max = 0.851 Mean = 0.500&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;numeric geofield [300 x 300] Min = 0.138 Max = 0.904 Mean = 0.500&gt;</span>
 <span class="r-in"><span><span class="fu">std_dev</span><span class="op">(</span><span class="va">glst</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">&lt;harp_geolist[1]&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;numeric geofield [300 x 300] Min = 0.076 Max = 0.455 Mean = 0.285&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;numeric geofield [300 x 300] Min = 0.063 Max = 0.445 Mean = 0.285&gt;</span>
 <span class="r-in"><span><span class="fu">variance</span><span class="op">(</span><span class="va">glst</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">&lt;harp_geolist[1]&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;numeric geofield [300 x 300] Min = 0.006 Max = 0.207 Mean = 0.084&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;numeric geofield [300 x 300] Min = 0.004 Max = 0.198 Mean = 0.083&gt;</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">glst</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">&lt;harp_geolist[1]&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 0.671 Mean = 0.091&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;numeric geofield [300 x 300] Min = 0.000 Max = 0.767 Mean = 0.091&gt;</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">glst</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">&lt;harp_geolist[1]&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;numeric geofield [300 x 300] Min = 0.285 Max = 1.000 Mean = 0.910&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;numeric geofield [300 x 300] Min = 0.279 Max = 1.000 Mean = 0.909&gt;</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="va">glst</span> <span class="op">&gt;</span> <span class="fl">0.9</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">&lt;harp_geolist[1]&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;logical geofield [300 x 300] TRUE: 58950 FALSE: <span style="color: #BB0000;">31050</span>&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;logical geofield [300 x 300] TRUE: 58695 FALSE: <span style="color: #BB0000;">31305</span>&gt;</span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/all.html" class="external-link">all</a></span><span class="op">(</span><span class="va">glst</span> <span class="op">&gt;</span> <span class="fl">0.25</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;">&lt;harp_geolist[1]&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;logical geofield [300 x 300] TRUE: 5082 FALSE: <span style="color: #BB0000;">84918</span>&gt;</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [[1]] &lt;logical geofield [300 x 300] TRUE: 5043 FALSE: <span style="color: #BB0000;">84957</span>&gt;</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc"><h2>On this page</h2>

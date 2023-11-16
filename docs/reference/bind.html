@@ -106,16 +106,16 @@ in the harp_list object, and the class of the first is used in the output.</p>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">::deterministic point forecast:: </span><span style="color: #949494;"># A tibble: 48 × 3</span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    fcst_model valid_dttm            fcst</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dttm&gt;</span>               <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> a          2021-01-01 <span style="color: #949494;">00:00:00</span> 0.305 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> a          2021-01-01 <span style="color: #949494;">01:00:00</span> 0.798 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> a          2021-01-01 <span style="color: #949494;">02:00:00</span> 0.056<span style="text-decoration: underline;">1</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> a          2021-01-01 <span style="color: #949494;">03:00:00</span> 0.978 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> a          2021-01-01 <span style="color: #949494;">04:00:00</span> 0.331 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> a          2021-01-01 <span style="color: #949494;">05:00:00</span> 0.061<span style="text-decoration: underline;">9</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> a          2021-01-01 <span style="color: #949494;">06:00:00</span> 0.944 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> a          2021-01-01 <span style="color: #949494;">07:00:00</span> 0.734 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> a          2021-01-01 <span style="color: #949494;">08:00:00</span> 0.629 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> a          2021-01-01 <span style="color: #949494;">09:00:00</span> 0.179 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> a          2021-01-01 <span style="color: #949494;">00:00:00</span> 0.170 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> a          2021-01-01 <span style="color: #949494;">01:00:00</span> 0.480 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> a          2021-01-01 <span style="color: #949494;">02:00:00</span> 0.623 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> a          2021-01-01 <span style="color: #949494;">03:00:00</span> 0.703 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> a          2021-01-01 <span style="color: #949494;">04:00:00</span> 0.164 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> a          2021-01-01 <span style="color: #949494;">05:00:00</span> 0.827 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> a          2021-01-01 <span style="color: #949494;">06:00:00</span> 0.039<span style="text-decoration: underline;">2</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> a          2021-01-01 <span style="color: #949494;">07:00:00</span> 0.304 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> a          2021-01-01 <span style="color: #949494;">08:00:00</span> 0.495 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> a          2021-01-01 <span style="color: #949494;">09:00:00</span> 0.434 </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 38 more rows</span></span>
 <span class="r-in"><span><span class="fu">bind</span><span class="op">(</span></span></span>
 <span class="r-in"><span>  <span class="fu"><a href="as_harp_list.html">as_harp_list</a></span><span class="op">(</span></span></span>
@@ -132,18 +132,18 @@ in the harp_list object, and the class of the first is used in the output.</p>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #00BB00;">::ensemble point forecast [[long]]:: </span><span style="color: #949494;"># A tibble: 96 × 5</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    fcst_model sub_model valid_dttm          member   fcst</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dttm&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>   <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> a          a         2021-01-01 <span style="color: #949494;">00:00:00</span> mbr000 0.877 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> a          a         2021-01-01 <span style="color: #949494;">00:00:00</span> mbr001 0.096<span style="text-decoration: underline;">9</span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> a          a         2021-01-01 <span style="color: #949494;">01:00:00</span> mbr000 0.479 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> a          a         2021-01-01 <span style="color: #949494;">01:00:00</span> mbr001 0.910 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> a          a         2021-01-01 <span style="color: #949494;">02:00:00</span> mbr000 0.777 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> a          a         2021-01-01 <span style="color: #949494;">02:00:00</span> mbr001 0.557 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> a          a         2021-01-01 <span style="color: #949494;">03:00:00</span> mbr000 0.292 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> a          a         2021-01-01 <span style="color: #949494;">03:00:00</span> mbr001 0.700 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> a          a         2021-01-01 <span style="color: #949494;">04:00:00</span> mbr000 0.498 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> a          a         2021-01-01 <span style="color: #949494;">04:00:00</span> mbr001 0.684 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    fcst_model sub_model valid_dttm          member  fcst</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dttm&gt;</span>              <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 1</span> a          a         2021-01-01 <span style="color: #949494;">00:00:00</span> mbr000 0.583</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 2</span> a          a         2021-01-01 <span style="color: #949494;">00:00:00</span> mbr001 0.332</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 3</span> a          a         2021-01-01 <span style="color: #949494;">01:00:00</span> mbr000 0.744</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 4</span> a          a         2021-01-01 <span style="color: #949494;">01:00:00</span> mbr001 0.637</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 5</span> a          a         2021-01-01 <span style="color: #949494;">02:00:00</span> mbr000 0.197</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 6</span> a          a         2021-01-01 <span style="color: #949494;">02:00:00</span> mbr001 0.374</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 7</span> a          a         2021-01-01 <span style="color: #949494;">03:00:00</span> mbr000 0.100</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 8</span> a          a         2021-01-01 <span style="color: #949494;">03:00:00</span> mbr001 0.258</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;"> 9</span> a          a         2021-01-01 <span style="color: #949494;">04:00:00</span> mbr000 0.796</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #BCBCBC;">10</span> a          a         2021-01-01 <span style="color: #949494;">04:00:00</span> mbr001 0.936</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> <span style="color: #949494;"># ℹ 86 more rows</span></span>
 </code></pre></div>
     </div>
