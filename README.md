@@ -1,19 +1,33 @@
-# harpCore
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+# harpCore <img src='man/figures/harp_logo_dark.svg' align="right" width = "80" />
+
 *Core functions and methods for the harp ecosystem*
 
-This package underlies everything in harp. It defines all of the classes, 
-generics and some methods used in the other harp packages, as well as some functions 
-that are needed in more than one of the harp packages. The most important classes 
-are:
+This package underlies everything in harp. It defines all of the
+classes, generics and some methods used in the other harp packages, as
+well as some functions that are needed in more than one of the harp
+packages. The most important classes are:
 
-* **geolist** - A list of 2d georeferenced fields.
-* **harp_df** (and subclasses) - Data frames containing harp data.
-* **harp_list** - A list of harp_df data frames.
+- **geolist** - A list of 2d georeferenced fields.
+- **harp_df** (and subclasses) - Data frames containing harp data.
+- **harp_list** - A list of harp_df data frames.
 
-Methods are defined for *most* [dplyr](https://dplyr.tidyverse.org/) verbs. 
+Methods are defined for *most* [dplyr](https://dplyr.tidyverse.org/)
+verbs.
 
-In addition, functions for handling date-times, geographic transformations of 
-gridded data, data frame manipulations specific to harp, meteorological 
-formulae and smoothing 2d fields are included. 
+In addition, functions for handling date-times, geographic
+transformations of gridded data, data frame manipulations specific to
+harp, meteorological formulae and smoothing 2d fields are included.
 
-This package is automatically attached by all other harp packages. 
+This package is automatically attached by all other harp packages.
+
+## Installation
+
+You can install harpCore from [GitHub](https://github.com/) with:
+
+``` r
+# install.packages("remotes")
+remotes::install_github("harphub/harpCore")
+```
