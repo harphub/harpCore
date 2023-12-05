@@ -2,9 +2,21 @@
 % Please edit documentation in R/date_time.R
 \name{seq_dttm}
 \alias{seq_dttm}
-\title{Generate a sequence of date-time strings}
+\alias{seq_secs}
+\alias{seq_mins}
+\alias{seq_hours}
+\alias{seq_days}
+\title{Generate a sequence of time strings}
 \usage{
 seq_dttm(start_dttm, end_dttm, by = "1h")
+
+seq_secs(from, to, by = 1)
+
+seq_mins(from, to, by = 1)
+
+seq_hours(from, to, by = 1)
+
+seq_days(from, to, by = 1)
 }
 \arguments{
 \item{start_dttm}{The date-time at the start of the sequence. Must be a
@@ -17,23 +29,39 @@ numeric of the form YYYYMMDD, YYYYMMDDhh, YYYYMMDDhhmm, or YYYYMMDDhhmmss.}
 \item{by}{Increment of the sequence. If numeric, it is considered to be in
 hours, otherwise a string with a number followed by a unit. Units can be
 "s", for seconds; "m", for minutes; "h", for hours; or "d", for days.}
+
+\item{from, to}{the starting and (maximal) end values of the
+    sequence.  Of length \code{1} unless just \code{from} is supplied as
+    an unnamed argument.}
 }
 \value{
 A sequence of date-time strings
 }
 \description{
-Given a start date-time, end date-time and time resolution a regular sequence
-of date-time strings is generated. The start and end date-times must be a
-string or numeric of the form YYYYMMDD, YYYYMMDDhh, YYYYMMDDhhmm, or
-YYYYMMDDhhmmss.
-}
-\details{
+Given a start date-time, end date-time and time resolution
+\code{seq_dttm()} generates a regular sequence of date-time strings is generated.
+The start and end date-times must be a string or numeric of the form
+YYYYMMDD, YYYYMMDDhh, YYYYMMDDhhmm, or YYYYMMDDhhmmss.
+
 The output sequence is a vector of strings. Truncation of the strings is done
 so that the last zero values are removed.
+
+\code{seq_secs()}, \code{seq_mins()}, \code{seq_hours()} and \code{seq_days()} generate regular
+sequences of numbers as character vectors with a character specifying the
+time unit. These vectors can be used to, for example, generate sequences of
+lead times for input to functions such as
+\code{\link[harpIO]{read_forecast}}. \code{\link{to_seconds}} can be used to
+convert any of the
 }
 \examples{
 seq_dttm(20220306, 20220307)
 seq_dttm(20220306, 20220307, by = "30m")
 seq_dttm(20220301, 20220331, by = "1d")
 seq_dttm(202203061030, 202203061045, by = "30s")
+seq_secs(0, 60, 5)
+seq_mins(0, 60, 15)
+seq_hours(0, 6)
+seq_hours(0, 6, 3)
+seq_days(0, 7)
+seq_days(0, 28, 7)
 }

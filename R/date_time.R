@@ -327,15 +327,22 @@ unixtime_to_str_dttm <- function(x) {
 
 ###
 
-#' Generate a sequence of date-time strings
+#' Generate a sequence of time strings
 #'
-#' Given a start date-time, end date-time and time resolution a regular sequence
-#' of date-time strings is generated. The start and end date-times must be a
-#' string or numeric of the form YYYYMMDD, YYYYMMDDhh, YYYYMMDDhhmm, or
-#' YYYYMMDDhhmmss.
+#' @description Given a start date-time, end date-time and time resolution
+#' `seq_dttm()` generates a regular sequence of date-time strings is generated.
+#' The start and end date-times must be a string or numeric of the form
+#' YYYYMMDD, YYYYMMDDhh, YYYYMMDDhhmm, or YYYYMMDDhhmmss.
 #'
 #' The output sequence is a vector of strings. Truncation of the strings is done
 #' so that the last zero values are removed.
+#'
+#' `seq_secs()`, `seq_mins()`, `seq_hours()` and `seq_days()` generate regular
+#' sequences of numbers as character vectors with a character specifying the
+#' time unit. These vectors can be used to, for example, generate sequences of
+#' lead times for input to functions such as
+#' \code{\link[harpIO]{read_forecast}}. \code{\link{to_seconds}} can be used to
+#' convert any of the
 #'
 #' @param start_dttm The date-time at the start of the sequence. Must be a
 #'   string or numeric of the form YYYYMMDD, YYYYMMDDhh, YYYYMMDDhhmm, or
@@ -374,6 +381,46 @@ seq_dttm <- function(start_dttm, end_dttm, by = "1h") {
   }
 
   as_str_dttm(seq(start_dttm, end_dttm, by_secs))
+}
+
+#' @inheritParams base::seq
+#'
+#' @rdname seq_dttm
+#' @export
+#'
+#' @examples
+#' seq_secs(0, 60, 5)
+seq_secs <- function(from, to, by = 1) {
+  paste0(seq(from, to, by), "s")
+}
+
+#' @rdname seq_dttm
+#' @export
+#'
+#' @examples
+#' seq_mins(0, 60, 15)
+seq_mins <- function(from, to, by = 1) {
+  paste0(seq(from, to, by), "m")
+}
+
+#' @rdname seq_dttm
+#' @export
+#'
+#' @examples
+#' seq_hours(0, 6)
+#' seq_hours(0, 6, 3)
+seq_hours <- function(from, to, by = 1) {
+  paste0(seq(from, to, by), "h")
+}
+
+#' @rdname seq_dttm
+#' @export
+#'
+#' @examples
+#' seq_days(0, 7)
+#' seq_days(0, 28, 7)
+seq_days <- function(from, to, by = 1) {
+  paste0(seq(from, to, by), "d")
 }
 
 #' Convert a time period to seconds
