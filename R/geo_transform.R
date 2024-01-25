@@ -1196,22 +1196,27 @@ define_domain <- function(
     ...
 ) {
 
-  proj <- match.arg(proj)
-  proj <- switch(
-    proj,
-    "lambert"       = "lcc",
-    "mercator"      = "merc",
-    "lalo"          = ,
-    "longlat"       = "latlong",
-    "omerc"         = ,
-    "somerc"        = "tmerc",
-    "rot_longlat"   = ,
-    "rot_latlong"   = ,
-    "RotLatLon"     = "ob_tran",
-    "stereo"        = ,
-    "stereogrpahic" = "stere",
-    proj
-  )
+  is_proj_str <- FALSE
+  if (substring(proj, 1, 6) == "+proj=") {
+    is_proj_str <- TRUE
+  } else {
+    proj <- match.arg(proj)
+    proj <- switch(
+      proj,
+      "lambert"       = "lcc",
+      "mercator"      = "merc",
+      "lalo"          = ,
+      "longlat"       = "latlong",
+      "omerc"         = ,
+      "somerc"        = "tmerc",
+      "rot_longlat"   = ,
+      "rot_latlong"   = ,
+      "RotLatLon"     = "ob_tran",
+      "stereo"        = ,
+      "stereogrpahic" = "stere",
+      proj
+    )
+  }
 
   if (length(nxny) == 1) nxny <- rep(nxny, 2)
   if (length(dxdy) == 1) dxdy <- rep(dxdy, 2)
@@ -1234,25 +1239,29 @@ define_domain <- function(
     exey <- correct_length(round.POSIXt(exey))
   }
 
-  projection <- switch(
-    proj,
-    "lcc" = list(
-      proj = proj, lon_0 = ref_lon,
-      lat_0 = ref_lat, lat_1 = ref_lat, lat_2 = ref_lat
-    ),
-    "merc" = list(
-      proj = proj, lon_0 = ref_lon
-    ),
-    "tmerc" = tranverse_mercator(ref_lon, ref_lat, tilt),
-    "latlong" = list(proj = proj),
-    "ob_tran" = list(
-      proj = proj, o_proj = "latlong",
-      o_lat_p = -ref_lat, o_lon_p = 0, lon_0 = ref_lon
-    ),
-    "stere" = list(proj = proj, lon_0 = ref_lon, lat_0 = ref_lat)
-  )
+  if (is_proj_str) {
+    projection <- meteogrid::proj4.str2list(proj)
+  } else {
+    projection <- switch(
+      proj,
+      "lcc" = list(
+        proj = proj, lon_0 = ref_lon,
+        lat_0 = ref_lat, lat_1 = ref_lat, lat_2 = ref_lat
+      ),
+      "merc" = list(
+        proj = proj, lon_0 = ref_lon
+      ),
+      "tmerc" = tranverse_mercator(ref_lon, ref_lat, tilt),
+      "latlong" = list(proj = proj),
+      "ob_tran" = list(
+        proj = proj, o_proj = "latlong",
+        o_lat_p = -ref_lat, o_lon_p = 0, lon_0 = ref_lon
+      ),
+      "stere" = list(proj = proj, lon_0 = ref_lon, lat_0 = ref_lat)
+    )
 
-  projection <- c(projection, list(R = R, ...))
+    projection <- c(projection, list(R = R, ...))
+  }
 
   res <- list(
     projection = projection, nx = nxny[1], ny = nxny[2],
