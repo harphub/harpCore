@@ -1075,6 +1075,168 @@ geo_transform.harp_geolist <- geo_transform_all
 #' @export
 geo_transform.harp_grid_df <- geo_transform_all
 
+
+########################
+# Reproject point data #
+########################
+
+## Helper function to get the projection
+get_projection <- function(x, caller = rlang::caller_env()) {
+
+  if (is_geolist(x) || meteogrid::is.geofield(x)) {
+    return(get_domain(x)[["projection"]])
+  }
+
+  if (meteogrid::is.geodomain(x)) {
+    return(x[["projection"]])
+  }
+
+  if (is.list(x) && !is.null(names(x)) && names(x)[1] == "proj") {
+    return(x)
+  }
+
+  if (is.character(x) && length(x) == 1 && substr(x, 1, 6) == "+proj=") {
+    return(meteogrid::proj4.str2list(x))
+  }
+
+  classes <- cli::cli_inform("")
+  types   <- "a proj string or a meteogrid proj list"
+  cli::cli_abort(c(
+    "Unknown type for {.arg proj}",
+    "i" = "{.arg proj} must be a {.cls geofield}, {.cls geodomain}, {.cls geolist},",
+    "i" = "{types}."
+    ),
+    call = caller
+  )
+}
+
+## Helper function to fix column names
+fix_col_names <- function(col_names, x_col, y_col) {
+  new_names <- gsub("projected_", "", col_names)
+  if (
+    length(which(new_names == x_col)) > 1 ||
+    length(which(new_names == y_col)) > 1
+  ) {
+    return(col_names)
+  }
+  new_names
+}
+
+#' Reproject from or to lat-lon coordinates
+#'
+#'
+#'
+#' @param x A data frame
+#' @param proj The projection. Can be a `geodomain`, a `geofield`, a `geolist`,
+#'   a projection string or a meteogrid projection list. When `inverse = FALSE`,
+#'   this is the projection to which locations in lat-lon coordinates are
+#'   reprojected, and when `inverse = TRUE`, this the projection from which
+#'   locations in projected coordinates are reprojected to lat-lon coordinates.
+#' @param x_col,y_col The names of the columns containing the x and y
+#'   coordinates to be reprojected. For `inverse = FALSE`, these should be
+#'   longitude and latitude in decimal degrees. For `inverse = TRUE`, these
+#'   should be eastings and northings in metres.
+#' @param crop When `proj` is a `geodomain`, `geofield` or `geolist`, set to
+#'   `TRUE` to crop the reprojected locations to only those locations within the
+#'   domain.
+#' @param inverse Set to `TRUE` to reprojected from projected coordinates to
+#'   lat-lon coordinates. The default is `FALSE`
+#'
+#' @return The input data frame with new columns for the reprojected
+#'   coordinates. The projection is added as an attribute. If the data are
+#'   cropped, the domain is also added.
+#' @export
+#'
+#' @examples
+#' geo_reproject(station_list, det_grid_df$fcst)
+#'
+#' # Crop to domain
+#' geo_reproject(station_list, det_grid_df$fcst, crop = TRUE)
+#'
+#' # inverse projection
+#' projected <- geo_reproject(station_list, det_grid_df$fcst)
+#' geo_reproject(
+#'   projected, det_grid_df$fcst, x_col = x, y_col = y, inverse = TRUE
+#' )
+#'
+geo_reproject <- function(
+  x, proj, x_col = "lon", y_col = "lat", crop = FALSE, inverse = FALSE
+) {
+  UseMethod("geo_reproject")
+}
+
+#' @export
+geo_reproject.data.frame <- function(
+    x, proj, x_col = "lon", y_col = "lat", crop = FALSE, inverse = FALSE
+) {
+
+  x_col <- rlang::ensym(x_col)
+  y_col <- rlang::ensym(y_col)
+
+  proj_list <- get_projection(proj)
+
+  x <- dplyr::mutate(
+    x,
+    projected = meteogrid::project(!!x_col, !!y_col, proj_list, inverse)
+  )
+
+  x_col_out <- "projected_x"
+  y_col_out <- "projected_y"
+  if (inverse) {
+    x[["projected"]] <- dplyr::rename(
+      x[["projected"]],
+      lon = dplyr::all_of("x"),
+      lat = dplyr::all_of("y")
+    )
+    x_col_out <- "projected_lat"
+    y_col_out <- "projected_lon"
+  }
+
+  x <- tidyr::unnest(x, dplyr::all_of("projected"), names_sep = "_")
+
+  if (!inverse) {
+    attr(x, "projection") <- meteogrid::proj4.list2str(proj_list)
+  }
+
+  if (!crop) {
+    colnames(x) <- fix_col_names(colnames(x), x_col, y_col)
+    return(x)
+  }
+
+  if (
+    !is_geolist(proj) &&
+    !meteogrid::is.geodomain(proj) &&
+    !meteogrid::is.geofield(proj)
+  ) {
+    cli::cli_warn(c(
+      "For {.arg crop = TRUE}, proj must be a",
+      "{.cls geofield}, {.cls geodomain}, or {.cls geolist}"
+    ))
+
+    colnames(x) <- fix_col_names(colnames(x), x_col, y_col)
+    return(x)
+  }
+
+  dom_ext <- meteogrid::DomainExtent(get_domain(proj))
+
+  x <- dplyr::filter(
+    x,
+    dplyr::between(.data[[x_col_out]], dom_ext[["x0"]], dom_ext[["x1"]]),
+    dplyr::between(.data[[y_col_out]], dom_ext[["y0"]], dom_ext[["y1"]])
+  )
+
+  colnames(x) <- fix_col_names(colnames(x), x_col, y_col)
+  attr(x, "domain") <- get_domain(proj)
+  x
+}
+
+#' @export
+geo_reproject.harp_df <- function(
+    x, proj, x_col = "lon", y_col = "lat", crop = FALSE, inverse = FALSE
+) {
+  as_harp_df(NextMethod())
+}
+
 #################
 # Make a domain #
 #################
