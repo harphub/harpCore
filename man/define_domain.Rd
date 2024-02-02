@@ -21,11 +21,8 @@ define_domain(
 )
 }
 \arguments{
-\item{centre_lon}{The longitude of the centre of the domain in decimal
-degrees.}
-
-\item{centre_lat}{The latitude of the centre of the domain in decimal
-degrees.}
+\item{centre_lon, centre_lat}{The longitude and latitude of the centre of the
+domain in decimal degrees.}
 
 \item{nxny}{The number of grid points in the x and y directions. Should be a
 vector of length 2 with the number of grid points in the x direction first.
@@ -36,11 +33,11 @@ For lat-lon projections this should be in decimal degrees, otherwise should
 be in metres. Should be a vector of length 2 with the resolution in the x
 direction first.}
 
-\item{proj}{The projection of the domain. See details.}
+\item{proj}{The projection of the domain. This can be the name of the
+projection or a projection string.}
 
-\item{ref_lon}{The reference longitude of the projection if needed.}
-
-\item{ref_lat}{The reference latitude of the projection if needed.}
+\item{ref_lon, ref_lat}{The reference longitude and latitude of the projection
+if relevant to the projection. Ignored if \code{proj} is a projection string.}
 
 \item{exey}{If defining a grid with an extension zone, a vector length 2 with
 the number of grid points in the x and y directions of the extension zone.
@@ -59,12 +56,19 @@ A \code{geodomain}
 \description{
 This function is used to define a new domain with a regular grid. At a
 minimum, the projection, geographic location of the centre of the domain and
-number of horizontal resolution of the grid points must be provided.
+number and horizontal resolution of the grid points must be provided.
 }
 \examples{
 dd <- define_domain(10, 60, 1000, 2500) # Default lambert projection
 plot(dd)
 
 dd <- define_domain(0, 0, c(360, 180), 1, "latlong") # Whole earth
+plot(dd)
+
+# Pass the projection as a proj string
+dd <- define_domain(
+  10, 60, 1000, 2500,
+  proj = "+proj=lcc +lon_0=15 +lat_0=63.3 +lat_1=63.3 +lat_2=63.3 +R=6371000"
+)
 plot(dd)
 }

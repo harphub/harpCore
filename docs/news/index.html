@@ -10,7 +10,7 @@
     
     <a class="navbar-brand me-2" href="../index.html">harpCore</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.1</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.2</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,15 @@
       <small>Source: <a href="https://github.com/harphub/harpCore/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.2" id="harpcore-022">harpCore 0.2.2<a class="anchor" aria-label="anchor" href="#harpcore-022"></a></h2>
+<ul><li>Hotfix release that improves <code><a href="../reference/define_domain.html">define_domain()</a></code> and adds <code><a href="../reference/geo_reproject.html">geo_reproject()</a></code>
+<ul><li>
+<code><a href="../reference/define_domain.html">define_domain()</a></code> has been improved so that it can take a <em>proj</em> string, e.g. <code>"+proj=lcc +lon_0=15 +lat_0=63.3 +lat_1=63.3 +lat_2=63.3 +R=6371000"</code> as the <code>proj</code> argument.</li>
+<li>
+<code><a href="../reference/geo_reproject.html">geo_reproject()</a></code> has been added to enable data frames with latitude and longitude columns to be expressed in projection coordinates.</li>
+</ul></li>
+</ul></div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.2.1" id="harpcore-021">harpCore 0.2.1<a class="anchor" aria-label="anchor" href="#harpcore-021"></a></h2>
 <ul><li>Hotfix release that adds functionality to generate time sequences with <code><a href="../reference/seq_dttm.html">seq_secs()</a></code>, <code><a href="../reference/seq_dttm.html">seq_mins()</a></code>, <code><a href="../reference/seq_dttm.html">seq_hours()</a></code> and <code><a href="../reference/seq_dttm.html">seq_days()</a></code>
