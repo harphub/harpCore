@@ -1307,13 +1307,12 @@ tranverse_mercator <- function(ref_lon, ref_lat, tilt) {
 #'
 #' This function is used to define a new domain with a regular grid. At a
 #' minimum, the projection, geographic location of the centre of the domain and
-#' number of horizontal resolution of the grid points must be provided.
+#' number and horizontal resolution of the grid points must be provided.
 #'
-#' @param proj The projection of the domain. See details.
-#' @param centre_lon The longitude of the centre of the domain in decimal
-#'   degrees.
-#' @param centre_lat The latitude of the centre of the domain in decimal
-#'   degrees.
+#' @param proj The projection of the domain. This can be the name of the
+#'   projection or a projection string.
+#' @param centre_lon,centre_lat The longitude and latitude of the centre of the
+#'   domain in decimal degrees.
 #' @param nxny The number of grid points in the x and y directions. Should be a
 #'   vector of length 2 with the number of grid points in the x direction first.
 #'   If only 1 value is given it is assumed to be the same in both directions.
@@ -1321,8 +1320,8 @@ tranverse_mercator <- function(ref_lon, ref_lat, tilt) {
 #'   For lat-lon projections this should be in decimal degrees, otherwise should
 #'   be in metres. Should be a vector of length 2 with the resolution in the x
 #'   direction first.
-#' @param ref_lon The reference longitude of the projection if needed.
-#' @param ref_lat The reference latitude of the projection if needed.
+#' @param ref_lon,ref_lat The reference longitude and latitude of the projection
+#'   if relevant to the projection. Ignored if `proj` is a projection string.
 #' @param exey If defining a grid with an extension zone, a vector length 2 with
 #'   the number of grid points in the x and y directions of the extension zone.
 #'   If only 1 value is given it is assumed to be the same in both directions.
@@ -1339,6 +1338,13 @@ tranverse_mercator <- function(ref_lon, ref_lat, tilt) {
 #' plot(dd)
 #'
 #' dd <- define_domain(0, 0, c(360, 180), 1, "latlong") # Whole earth
+#' plot(dd)
+#'
+#' # Pass the projection as a proj string
+#' dd <- define_domain(
+#'   10, 60, 1000, 2500,
+#'   proj = "+proj=lcc +lon_0=15 +lat_0=63.3 +lat_1=63.3 +lat_2=63.3 +R=6371000"
+#' )
 #' plot(dd)
 define_domain <- function(
     centre_lon,
@@ -1359,9 +1365,13 @@ define_domain <- function(
 ) {
 
   is_proj_str <- FALSE
-  if (substring(proj, 1, 6) == "+proj=") {
-    is_proj_str <- TRUE
-  } else {
+  projTry <- try(match.arg(proj), silent = TRUE)
+  if (inherits(projTry, "try-error")) {
+    if (length(proj) == 1 && substring(proj, 1, 6) == "+proj=") {
+      is_proj_str <- TRUE
+    }
+  }
+  if (!is_proj_str) {
     proj <- match.arg(proj)
     proj <- switch(
       proj,
