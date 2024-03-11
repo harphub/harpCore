@@ -38,6 +38,8 @@ geo_points.geofield <- function(
     keep_weights = FALSE
 ) {
 
+  x <- latlong_fudge(x)
+
   if (missing(points) && is.null(weights)) {
     cli::cli_alert_info("Using default points from `station_list`.")
     points <- get("station_list")
@@ -295,6 +297,9 @@ geo_regrid.geofield <- function(
     weights      = NULL,
     keep_weights = FALSE
 ) {
+
+  x        <- latlong_fudge(x)
+  new_grid <- latlong_fudge(new_grid)
 
   check_args_geo_regrid(x, new_grid, mask, new_mask)
 
@@ -670,6 +675,8 @@ geo_xsection.geofield <- function(
     keep_weights = FALSE
 ) {
 
+  x <- latlong_fudge(x)
+
   if (is.null(weights)) {
     invisible(lapply(list(p1, p2, n), check_numeric))
 
@@ -804,6 +811,8 @@ geo_upscale.geofield <- function(
   downsample_location = "bottom_left",
   ...
 ) {
+
+  x <- latlong_fudge(x)
 
   check_numeric(factor, "factor")
   factor <- round_to_integer(factor, "factor")
@@ -1576,4 +1585,22 @@ geo_opts_upscale <- function(
     method              = method,
     downsample_location = downsample_location
   )
+}
+
+# meteogrid functions do not recognise "longlat" as a longlat projection
+# Change to "latlong" to get the projection recognised.
+latlong_fudge <- function(geo) {
+  if (meteogrid::is.geofield(geo)) {
+    if (attr(geo, "domain")[["projection"]][["proj"]] == "longlat") {
+      attr(geo, "domain")[["projection"]][["proj"]] <- "latlong"
+    }
+  }
+
+  if (meteogrid::is.geodomain(geo)) {
+    if (geo[["projection"]][["proj"]] == "longlat") {
+      geo[["projection"]][["proj"]] <- "latlong"
+    }
+  }
+
+  geo
 }

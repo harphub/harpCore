@@ -74,6 +74,8 @@ geo_weights_points.geodomain <- function(
   force  = FALSE
 ) {
 
+  x <- latlong_fudge(x)
+
   if (missing(points)) {
     message("Using default points from `station_list`.")
     points <- get("station_list")
@@ -122,6 +124,8 @@ geo_weights_points.geofield <- function(
   mask   = NULL,
   force  = FALSE
 ) {
+
+  x <- latlong_fudge(x)
 
   if (missing(points)) {
     message("Using default points from `station_list`.")
@@ -180,6 +184,8 @@ geo_weights_regrid_geo <- function(
     new_mask = NULL
 ) {
 
+  x        <- latlong_fudge(x)
+  new_grid <- latlong_fudge(new_grid)
 
   method  <- match.arg(method)
   dom     <- get_domain(x)
@@ -239,6 +245,8 @@ geo_weights_xsection.geodomain <- function(
     n            = 100,
     method       = c("bilinear", "nearest", "bicubic")
 ) {
+
+  x <- latlong_fudge(x)
 
   invisible(lapply(list(p1, p2, n), check_numeric))
 
