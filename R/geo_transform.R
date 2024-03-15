@@ -298,11 +298,10 @@ geo_regrid.geofield <- function(
     keep_weights = FALSE
 ) {
 
-  x        <- latlong_fudge(x)
-  new_grid <- latlong_fudge(new_grid)
 
   check_args_geo_regrid(x, new_grid, mask, new_mask)
 
+  x       <- latlong_fudge(x)
   method  <- match.arg(method)
   dom     <- get_domain(x)
 
@@ -339,8 +338,8 @@ geo_regrid.geofield <- function(
         ))
       }
     }
-    new_dom <- get_domain(new_grid)
-    weights <- geo_weights_regrid(dom, new_dom, method, mask, new_mask)
+    new_dom  <- latlong_fudge(get_domain(new_grid))
+    weights  <- geo_weights_regrid(dom, new_dom, method, mask, new_mask)
   }
 
   res <- meteogrid::regrid(x, weights = weights)
