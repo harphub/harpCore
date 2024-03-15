@@ -283,7 +283,7 @@ make_verif_groups <- function(time_groups, groups) {
     ))
   }
   groups <- unlist(
-    lapply(seq_along(groups), function(x) combn(groups, x, simplify = FALSE)),
+    lapply(seq_along(groups), function(x) utils::combn(groups, x, simplify = FALSE)),
     recursive = FALSE
   )
   c(

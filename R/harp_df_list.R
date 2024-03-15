@@ -1399,7 +1399,6 @@ ens_prob.harp_list <- function(
 #'   be a numeric scalar - in which case it is recycled for all forecast models;
 #'   a list or numeric vector of the same length as the harp_fcst object, or a
 #'   named list with the names corresponding to names in the harp_fcst object.
-#' @param ...
 #'
 #' @return A \code{harp_fcst} object with columns ens_mean and ens_var added to
 #'   the forecast tables.

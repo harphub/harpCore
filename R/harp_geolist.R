@@ -143,6 +143,47 @@ glapply2 <- function(X, Y, FUN, ...) {
   )
 }
 
+#' Apply a funtion that returns a geolist to mutiple list are vector arguments
+#'
+#' `gmapply()` is an implementation of \code{\link[base]{mapply}()} especially
+#' for geolists. `FUN` is applied to the first elements of each `...` argument,
+#' the second elements, the third elements and so on. `gmapply()` differs from
+#' `mapply()` in that the result is expected to be a `geolist`.
+#'
+#' @inheritParams base::mapply
+#' @return A `geolist` of the same length as the arguments in `...`
+#'
+#' @export
+#'
+#' @examples
+#' gmapply(
+#'   function(a, b, c, d) (a + b * c) / d,
+#'   det_grid_df$fcst,
+#'   seq_len(nrow(det_grid_df)),
+#'   seq_len(nrow(det_grid_df)) * 10,
+#'   MoreArgs = list(d = 100)
+#' )
+gmapply <- function(FUN, ..., MoreArgs = NULL) {
+
+  res <- mapply(
+    FUN, ..., MoreArgs = MoreArgs, SIMPLIFY = FALSE, USE.NAMES = FALSE
+  )
+
+  if (!all(vapply(res, meteogrid::is.geofield, logical(1)))) {
+    cli::cli_abort(c(
+      "Not all elements of result are {.cls geofield}s."
+    ))
+  }
+
+  if (!check_same_domain(res)) {
+    cli::cli_abort(c(
+      "Not all elements of result are on the same domain."
+    ))
+  }
+
+  geolist(res)
+}
+
 ###########################################
 ### Set up geofield prototype and methods #
 ###########################################

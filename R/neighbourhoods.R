@@ -180,18 +180,44 @@ nbhd_smooth.harp_geolist <- function(
     include_high = TRUE,
     boundary     = c("zero_pad", "missing")
 ) {
-  glapply(
-    x,
+
+  if (comparator %in% c("between", "outside")) {
+    if (!is.list(threshold)) {
+      threshold <- list(threshold)
+    }
+  }
+
+  # Allow radius and threshold to be a data frame column
+
+  check_length(radius, c(1, length(x)), "radius")
+  check_length(threshold, c(1, length(x)), "threshold")
+
+  gmapply(
     nbhd_smooth,
+    x,
     radius,
     threshold,
-    comparator,
-    include_low,
-    include_high,
-    boundary
+    MoreArgs = list(
+      comparator   = comparator,
+      include_low  = include_low,
+      include_high = include_high,
+      boundary     = boundary
+    )
   )
+
+
 }
 
+check_length <- function(x, len, arg) {
+  if (!length(x) %in% len) {
+    len_inform <- glue::glue_collapse(len, sep = ", ", last = " or ")
+    cli::cli_abort(c(
+      "Incorrect length for {.arg {arg}}.",
+      "i" = "{.arg {arg}} must be a length {len_inform} vector.",
+      "x" = "You provided a length {length(x)} vector."
+    ), call = rlang::caller_env())
+  }
+}
 #' @rdname nbhd_smooth
 #' @export
 cumsum_2d <- function(
