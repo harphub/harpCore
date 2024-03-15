@@ -181,6 +181,8 @@ nbhd_smooth.harp_geolist <- function(
     boundary     = c("zero_pad", "missing")
 ) {
 
+  comparator <- match.arg(comparator)
+
   if (comparator %in% c("between", "outside")) {
     if (!is.list(threshold)) {
       threshold <- list(threshold)
