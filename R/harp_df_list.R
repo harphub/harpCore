@@ -448,7 +448,7 @@ join_to_fcst <- function(
 
 #' @export
 join_to_fcst.harp_df <- function(
-    .fcst,
+  .fcst,
   .join,
   join_type  = c("inner", "left", "right", "full", "semi", "anti"),
   by         = NULL,
@@ -555,7 +555,7 @@ join_to_fcst.harp_df <- function(
 
 #' @export
 join_to_fcst.harp_list <- function(
-    .fcst,
+  .fcst,
   .join,
   join_type  = c("inner", "left", "right", "full", "semi", "anti"),
   by         = NULL,
@@ -571,6 +571,72 @@ join_to_fcst.harp_list <- function(
     latlon, elev,
     force, keep_x, keep_y, ...
   ))
+}
+
+#' Join station groups to a point forecast data frame or `harp_list`
+#'
+#' `join_station_groups` adds a column to a `harp_det_point_df` or
+#' `harp_ens_point_df` data frame to signify what group a station (SID) belongs
+#' in. This column can then be used as a grouping column in verification
+#' functions. By default, the built in station group data `station_groups` is
+#' used, but any data frame with a common column with the forecast data that
+#' uniquely identifies a station can be used.
+#'
+#' It should be noted that where stations fall into more than one group, an
+#' extra row of data is created for each group. This may have implications for
+#' memory, so it could be wiser to filter the data for individual station
+#' groups prior to running any harp verification function.
+#'
+#' @param group_df a data frame with a column that is common to `.fcst` that
+#'   uniquely identifies a station, and a column for the group name.
+#' @param group_col <[`tidy-select`][dplyr::dplyr_tidy_select]> The name of the
+#'   column in `group_df` that contains the name of the station group.
+#'
+#' @return An object of the same class as `.fcst` with a column for station
+#'   group
+#' @export
+#'
+#' @examples
+#' join_station_groups(det_point_df)
+#'
+#' # Note the increase in the number of rows
+#' nrow(det_point_df)
+#' nrow(join_station_groups(det_point_df))
+#'
+#' # Use custom groups
+#' grps <- data.frame(
+#'   SID = c(1001, 1001, 1002, 1002, 1002),
+#'   letter = c("A", "B", "A", "C", "D")
+#' )
+#' join_station_groups(det_point_df, grps, letter)
+#'
+#' # Where a station is not in a group it gets the value "None" (note also the
+#' # use of tidy selection)
+#' ll <- "letter"
+#' grps <- data.frame(
+#'   SID = 1002,
+#'   letter = "A"
+#' )
+#' join_station_groups(det_point_df, grps, {{ll}})
+join_station_groups <- function(
+  .fcst,
+  group_df  = getExportedValue("harpCore", "station_groups"),
+  group_col = "station_group"
+) {
+
+  group_col <- rlang::ensym(group_col)
+
+  .fcst <- suppressMessages(suppressWarnings(
+    join_to_fcst(.fcst, group_df, "left", force = TRUE)
+  ))
+
+  dplyr::mutate(
+    .fcst,
+    !!group_col := dplyr::case_when(
+      is.na(!!group_col) ~ "None",
+      .default = !!group_col
+    )
+  )
 }
 
 #' Add or modify a units column
