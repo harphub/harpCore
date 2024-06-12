@@ -1694,23 +1694,27 @@ parse_member_drop <- function(x, nm) {
 #' respectively), that column will also be included.
 #'
 #' @param .fcst A harp_list object
+#' @param rows_only Logical. Default is `FALSE`. Set to `TRUE` to only return
+#'   a data frame of the meta data for the common cases. That is to say, a
+#'   data frame with columns for SID, fcst_dttm and lead_time as well as any
+#'   columns specified in `...`
 #' @param ... Extra columns from which to determine the common cases. To remove
-#'   one of the default columns from the test use -<col>.
+#'   one of the default columns from the test use `-<col>`.
 #'
 #' @return The input data frame with only the common stations and forecast dates
 #'   for each forecast model selected.
 #' @export
-common_cases <- function(.fcst, ...) {
+common_cases <- function(.fcst, row_only = FALSE, ...) {
   UseMethod("common_cases")
 }
 
 #' @export
-common_cases.harp_df <- function(.fcst, ...) {
+common_cases.harp_df <- function(.fcst, rows_only = FALSE, ...) {
   .fcst
 }
 
 #' @export
-common_cases.harp_list <- function(.fcst, ...) {
+common_cases.harp_list <- function(.fcst, rows_only = FALSE, ...) {
 
   if (length(.fcst) < 2) {
     return(.fcst)
@@ -1751,6 +1755,10 @@ common_cases.harp_list <- function(.fcst, ...) {
     function(x, y) suppressMessages(dplyr::inner_join(x, y)),
     common_rows
   )
+
+  if (rows_only) {
+    return(common_rows)
+  }
 
   suppressMessages(
     suppressWarnings(

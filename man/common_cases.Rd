@@ -4,13 +4,18 @@
 \alias{common_cases}
 \title{Filter to common cases}
 \usage{
-common_cases(.fcst, ...)
+common_cases(.fcst, row_only = FALSE, ...)
 }
 \arguments{
 \item{.fcst}{A harp_list object}
 
 \item{...}{Extra columns from which to determine the common cases. To remove
-one of the default columns from the test use -\if{html}{\out{<col>}}.}
+one of the default columns from the test use \verb{-<col>}.}
+
+\item{rows_only}{Logical. Default is \code{FALSE}. Set to \code{TRUE} to only return
+a data frame of the meta data for the common cases. That is to say, a
+data frame with columns for SID, fcst_dttm and lead_time as well as any
+columns specified in \code{...}}
 }
 \value{
 The input data frame with only the common stations and forecast dates
