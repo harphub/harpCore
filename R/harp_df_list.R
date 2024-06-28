@@ -1704,7 +1704,7 @@ parse_member_drop <- function(x, nm) {
 #' @return The input data frame with only the common stations and forecast dates
 #'   for each forecast model selected.
 #' @export
-common_cases <- function(.fcst, row_only = FALSE, ...) {
+common_cases <- function(.fcst, rows_only = FALSE, ...) {
   UseMethod("common_cases")
 }
 
