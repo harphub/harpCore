@@ -1694,33 +1694,38 @@ parse_member_drop <- function(x, nm) {
 #' respectively), that column will also be included.
 #'
 #' @param .fcst A harp_list object
+#' @param ... Extra columns from which to determine the common cases. To remove
+#'   one of the default columns from the test use `-<col>`.
 #' @param rows_only Logical. Default is `FALSE`. Set to `TRUE` to only return
 #'   a data frame of the meta data for the common cases. That is to say, a
 #'   data frame with columns for SID, fcst_dttm and lead_time as well as any
 #'   columns specified in `...`
-#' @param ... Extra columns from which to determine the common cases. To remove
-#'   one of the default columns from the test use `-<col>`.
 #'
 #' @return The input data frame with only the common stations and forecast dates
 #'   for each forecast model selected.
 #' @export
-common_cases <- function(.fcst, rows_only = FALSE, ...) {
+common_cases <- function(.fcst, ..., rows_only = FALSE) {
   UseMethod("common_cases")
 }
 
 #' @export
-common_cases.harp_df <- function(.fcst, rows_only = FALSE, ...) {
+common_cases.harp_df <- function(.fcst, ..., rows_only = FALSE) {
   .fcst
 }
 
 #' @export
-common_cases.harp_list <- function(.fcst, rows_only = FALSE, ...) {
+common_cases.harp_list <- function(.fcst, ..., rows_only = FALSE) {
 
   if (length(.fcst) < 2) {
     return(.fcst)
   }
 
   common_cols <- c("SID", "fcst_dttm", "lead_time", "p", "z", "ml")
+  named_cols  <- vapply(rlang::enquos(...), rlang::as_label, character(1))
+  named_cols  <- gsub("\"", "", named_cols)
+  remove_cols <- grep("^-", named_cols, value = TRUE)
+  common_cols <- common_cols[!common_cols %in% gsub("^-", "", remove_cols)]
+  common_cols <- c(common_cols, named_cols)
 
   common_rows <- lapply(
     .fcst,
@@ -1730,14 +1735,21 @@ common_cases.harp_list <- function(.fcst, rows_only = FALSE, ...) {
           dplyr::select(
             x,
             dplyr::any_of(common_cols),
-            ...
           )
         ),
-        dplyr::across(dplyr::any_of(common_cols)),
-        ...
+        dplyr::across(dplyr::any_of(common_cols))
       )
     }
   )
+
+  common_rows <- Reduce(
+    function(x, y) suppressMessages(dplyr::inner_join(x, y)),
+    common_rows
+  )
+
+  if (rows_only) {
+    return(common_rows)
+  }
 
   all_identical <- all(
     purrr::map2_lgl(
@@ -1749,15 +1761,6 @@ common_cases.harp_list <- function(.fcst, rows_only = FALSE, ...) {
 
   if (all_identical) {
     return(.fcst)
-  }
-
-  common_rows <- Reduce(
-    function(x, y) suppressMessages(dplyr::inner_join(x, y)),
-    common_rows
-  )
-
-  if (rows_only) {
-    return(common_rows)
   }
 
   suppressMessages(

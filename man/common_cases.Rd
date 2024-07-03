@@ -4,7 +4,7 @@
 \alias{common_cases}
 \title{Filter to common cases}
 \usage{
-common_cases(.fcst, row_only = FALSE, ...)
+common_cases(.fcst, ..., rows_only = FALSE)
 }
 \arguments{
 \item{.fcst}{A harp_list object}
