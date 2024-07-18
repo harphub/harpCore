@@ -498,3 +498,82 @@ to_seconds_error <- function(x) {
   ))
 
 }
+
+#' Round date-times to defined multiples
+#'
+#' `round_dttm()` takes a vector of POSIXct date-times and rounds them to
+#' prescribed multiples. Date-times can be rounded to the nearest multiple, or
+#' up or down. Additionally, an offset can be applied.
+#'
+#' @param dttm A vector of POSIXct date-times.
+#' @param rounding The multiple to which to round date-times. This
+#'   should be a number followed "s", "m", "h", or "d" for seconds, minutes,
+#'   hours and days.
+#' @param direction The direction in which to round date-times. Can be
+#'   "nearest", "up" or "down". For "nearest", the rounding is centred on
+#'   `rounding`. Where there is an even number of date-times to be
+#'   aggregated, the averaging window favours date-times before the rounding
+#'   time. For example, if rounding date-times to "6h", the aggregation for 06
+#'   UTC will take in 03, 04, 05, 06, 07 and 08 UTC, and the aggregation for 12
+#'   UTC will take in 09, 10, 11, 12, 13 and 14 UTC etc. For "up" the rounding
+#'   is for a window for all times up to and including `rounding` and for
+#'   "down" the rounding is for a window starting at `rounding`.
+#' @param offset The offset to be applied to `rounding`. This
+#'   should be a number followed "s", "m", "h", or "d" for seconds, minutes,
+#'   hours and days. This is used to centre the rounding. For example, if
+#'   `rounding` = "1d", the rounding will be centred on 00 UTC. If you want
+#'   it to be centred on 12 UTC, you would supply an offset of "12h". Note that
+#'   the offset is applied backwards in time, so if you want to centre on 06
+#'   UTC, for example, the offset should be "18h".
+#'
+#' @return A POSIXct vector of the same length as `dttm` with rounded
+#'   date-times.
+#' @export
+#'
+#' @examples
+#' my_dttm <- data.frame(dttm = as_dttm(seq_dttm(2024010100, 2024010223)))
+#'
+#' # Round to the nearest 6h - note that 06 UTC includes 03, 04, 05, 06, 07 and
+#' # 08 UTC
+#' my_dttm$rounded <- round_dttm(my_dttm$dttm, "6h")
+#' my_dttm
+#'
+#' # Round up to the nearest 6h
+#' my_dttm$rounded <- round_dttm(my_dttm$dttm, "6h", "up")
+#' my_dttm
+#'
+#' # Round to the nearest day - note centring on 00 UTC
+#' my_dttm$rounded <- round_dttm(my_dttm$dttm, "1d")
+#' my_dttm
+#'
+#' # Centre 1 day rounding on 12 UTC
+#' my_dttm$rounded <- round_dttm(my_dttm$dttm, "1d", offset = "12h")
+#' my_dttm
+round_dttm <- function(dttm, rounding, direction= "nearest", offset = 0) {
+  if (!inherits(dttm, "POSIXct")) {
+    cli::cli_abort(c(
+      "Invalid class for {.arg dttm}.",
+      "x" = "You supplied an object of class {.cls {class(dttm)}}.",
+      "i" = "{.arg dttm} must have class {.cls POSIXct}."
+    ))
+  }
+  dttm       <- as.numeric(dttm) + to_seconds(offset)
+  rounding   <- harpCore::to_seconds(rounding)
+  round_func <- get(paste0("round_", direction))
+  harpCore::unixtime_to_dttm(
+    round_func(dttm, rounding) - to_seconds(offset)
+  )
+}
+
+round_nearest <- function(x, mult) {
+  floor((x + mult / 2) / mult) * mult
+}
+
+round_up <- function(x, mult) {
+  x + (-x %% mult)
+}
+
+round_down <- function(x, mult) {
+  x - (x %% mult)
+}
+
