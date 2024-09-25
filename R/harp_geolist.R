@@ -937,3 +937,71 @@ harp_geolist_compare.numeric.harp_geolist <- function(op, x, y, ...) {
   op <- match.fun(op)
   glapply(y, function(.y) op(x, .y), ...)
 }
+
+##################
+# Domain helpers #
+##################
+
+#' Get the extent of a geodomain
+#'
+#' @param x A geodomain, geofield or geolist.
+#'
+#' @return A named list containing:
+#'   \item{lonlim,latlim}{The extreme longitudes and latitudes in the domain}
+#'   \item{clonlat}{The longitude and latitude of the domain centre}
+#'   \item{x0,x1,y0,y1}{The SW and NE corners of the domain in projection coordinates}
+#'   \item{dx,dy}{The spacing between grid points in projection coordinates}
+#'   \item{nx,ny}{The number of grid points in the x and y directions}
+#' @export
+#'
+#' @examples
+#' domain_extent(det_grid_df$fcst)
+#'
+#' my_dom <- define_domain(10.9, 57.8, 100, 1, "longlat")
+#' domain_extent(my_dom)
+domain_extent <- function(x) {
+  UseMethod("domain_extent")
+}
+
+#' @export
+#' @rdname domain_extent
+domain_extent.geodomain <- function(x) meteogrid::DomainExtent(x)
+
+#' @export
+#' @rdname domain_extent
+domain_extent.geofield <- function(x) domain_extent(get_domain(x))
+
+#' @export
+#' @rdname domain_extent
+domain_extent.harp_geolist <- domain_extent.geofield
+
+
+#' Get the corners of a geodomain in longitude and latitude coordinates
+#'
+#' @param x A geodomain, geofield or geolist.
+#'
+#' @return A named list containing the south-west (SW), north-east (NE),
+#'   south-east (SE) and north-west (NW) corners of the domain in longitude
+#'   and latitude coordinates.
+#' @export
+#'
+#' @examples
+#' domain_corners(det_grid_df$fcst)
+#'
+#' my_dom <- define_domain(10.9, 57.8, 100, 1, "longlat")
+#' domain_corners(my_dom)
+domain_corners <- function(x) {
+  UseMethod("domain_corners")
+}
+
+#' @export
+#' @rdname domain_corners
+domain_corners.geodomain <- function(x) meteogrid::DomainCorners(x)
+
+#' @export
+#' @rdname domain_corners
+domain_corners.geofield <- function(x) domain_corners(get_domain(x))
+
+#' @export
+#' @rdname domain_corners
+domain_corners.harp_geolist <- domain_corners.geofield

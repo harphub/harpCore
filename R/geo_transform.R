@@ -1456,7 +1456,7 @@ define_domain <- function(
   res     <- structure(res, class = "geodomain")
 
   corners <- meteogrid::DomainCorners(res)
-  res[["clonlat"]] <- NULL
+  #res[["clonlat"]] <- NULL
   res[["SW"]] <- unlist(corners[["SW"]], use.names = FALSE)
   res[["NE"]] <- unlist(corners[["NE"]], use.names = FALSE)
 
