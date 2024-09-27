@@ -28,7 +28,8 @@ Imports:
     rlang,
     tibble,
     tidyr (>= 1.1),
-    vctrs
+    vctrs,
+    zeallot
 Remotes:
     harphub/meteogrid
 Depends: 

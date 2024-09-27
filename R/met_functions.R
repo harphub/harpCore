@@ -119,3 +119,167 @@ q_to_rh <- function(q, t, p = 1013.25, a = 17.67, b = 243.5) {
   rh[rh < 0] <- 0
   rh
 }
+
+#' Compute the vorticity or divergence from vector components
+#'
+#' These functions compute the vorticity and divergence of a vector field. If
+#' the vectors are relative to the earth but the grid is on a projection, the
+#' vectors can optionally be rotated to the projected grid prior to computation.
+#'
+#' @param u A geofield or geolist of the u component
+#' @param v A geofield or geolist of the v component
+#' @param rotate_to_grid Logical. Whether to rotate the vector components from
+#'   earth relative to grid relative. Default is FALSE
+#' @param rotation_init If the angles for rotation have been previously
+#'   computed (e.g. using `meteogrid::geowind.init`) they can be passed here.
+#'   Default is NULL
+#'
+#' @return A geofield if `u` and `v` are geofields or a geolist if `u` and `v`
+#'   are geolists.
+#' @export
+#'
+vorticity <- function(u, v, rotate_to_grid = FALSE, rotation_init = NULL) {
+  UseMethod("vorticity")
+}
+
+#' @importFrom zeallot "%<-%"
+#' @export
+vorticity.geofield <- function(
+    u, v, rotate_to_grid = FALSE, rotation_init = NULL
+) {
+
+  check_uv_domains(u, v)
+
+  if (rotate_to_grid) {
+    c(u, v) %<-% meteogrid::geowind(u, v, inv = TRUE, init = rotation_init)
+  }
+
+  attrs <- attributes(u)
+
+  dudy <- first_derivative(u, "y")
+  dvdx <- first_derivative(v, "x")
+
+  res <- dvdx - dudy
+  attributes(res) <- attrs
+  attr(res, "info")$name = "Vorticity"
+  res
+}
+
+#' @export
+vorticity.harp_geolist <- function(
+    u, v, rotate_to_grid = FALSE, rotation_init = NULL
+) {
+
+  check_uv_domains(u, v)
+
+  if (rotate_to_grid && is.null(rotation_init)) {
+    rotation_init <- meteogrid::geowind.init(get_domain(u))
+  }
+
+  glapply2(u, v, vorticity, rotate_to_grid, rotation_init)
+}
+
+#' @export
+#' @rdname vorticity
+divergence <- function(u, v, rotate_to_grid = FALSE, rotation_init = NULL) {
+  UseMethod("divergence")
+}
+
+#' @export
+divergence.geofield <- function(
+    u, v, rotate_to_grid = FALSE, rotation_init = NULL
+) {
+
+  check_uv_domains(u, v)
+
+  if (rotate_to_grid) {
+    c(u, v) %<-% meteogrid::geowind(u, v, inv = TRUE, rotation_init)
+  }
+
+  attrs <- attributes(u)
+
+  dudx <- first_derivative(u, "x")
+  dvdy <- first_derivative(v, "y")
+
+  res <- dudx + dvdy
+  attributes(res) <- attrs
+  attr(res, "info")$name = "Divergence"
+  res
+}
+
+#' @export
+divergence.harp_geolist <- function(
+    u, v, rotate_to_grid = FALSE, rotation_init = NULL
+) {
+
+  check_uv_domains(u, v)
+
+  if (rotate_to_grid && is.null(rotation_init)) {
+    rotation_init <- meteogrid::geowind.init(get_domain(u))
+  }
+
+  glapply2(u, v, divergence, rotate_to_grid, rotation_init)
+}
+
+
+check_uv_domains <- function(u, v) {
+
+  if (!identical(sort(class(u)), sort(class(v)))) {
+    cli::cli_abort(c(
+      "{.arg u} and {.arg v} are not the same class.",
+      "x" = "You supplied {.arg u} {.cls {class(u)}}, {.arg v} {.cls {class(v)}}.",
+      "i" = paste(
+        "If {.arg u} has class {.cls {class(u)}}",
+        "{.arg v} must also have class {.cls {class(u)}}."
+      )
+    ), call = rlang::caller_env())
+  }
+
+  dom <- get_domain(u)
+  if (!check_same_domain(list(dom, get_domain(v)))) {
+    rlang::abort(
+      "geofields must be on the same domain.", call = rlang::caller_env()
+    )
+  }
+
+  ll_proj <- c(
+    "lalo","longlat", "latlong", "rot_longlat", "rot_latlong", "RotLatLon"
+  )
+  if (dom$projection$proj %in% ll_proj) {
+    rlang::abort("Currently only works on projected geofields")
+  }
+
+}
+
+# Compute the first derivative of a geofield in the specified direction - for
+# internal points, centred differencing is used, and for points on the edge,
+# forward or backward differencing is used depending on which edge it is.
+first_derivative <- function(x, direction = c("x", "y")) {
+
+  spacing <- get_domain(x)[[paste0("d", direction)]]
+
+  attributes(x) <- attributes(x)[names(attributes(x)) == "dim"]
+
+  # diff only works on individual columns so transpose for y direction
+  if (direction == "y") {
+    x <- t(x)
+  }
+
+  # Allocate an array for the result
+  res <- array(dim = dim(x))
+
+  # Centred difference points
+  res[2:(nrow(x) - 1), ] <- diff(x, lag = 2) / (2 * spacing)
+
+  # Forward difference at the left edge
+  res[1,] <- (x[2,] - x[1,]) / spacing
+
+  # Backward difference at the right edge
+  res[nrow(x), ] <- (x[nrow(x), ] - x[(nrow(x) - 1), ]) / spacing
+
+  if (direction == "y") {
+    res <- t(res)
+  }
+
+  res
+}
