@@ -625,6 +625,15 @@ join_station_groups <- function(
 ) {
 
   group_col <- rlang::ensym(group_col)
+  group_col_name <- rlang::as_name(group_col)
+
+  if (!is.list(dplyr::pull(group_df, !!group_col))) {
+    group_df <-     dplyr::summarise(
+      group_df,
+      !!group_col := list(union("All", unique(!!group_col))),
+      .by = "SID"
+    )
+  }
 
   .fcst <- suppressMessages(suppressWarnings(
     join_to_fcst(.fcst, group_df, "left", force = TRUE)
@@ -633,10 +642,11 @@ join_station_groups <- function(
   dplyr::mutate(
     .fcst,
     !!group_col := dplyr::case_when(
-      is.na(!!group_col) ~ "None",
+      sapply(!!group_col, is.null) ~ list("All"),
       .default = !!group_col
     )
   )
+
 }
 
 #' Add or modify a units column
