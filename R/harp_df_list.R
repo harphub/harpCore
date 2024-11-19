@@ -653,7 +653,8 @@ join_station_groups <- function(
     )
   )
 
-  attr(.fcst, group_col_name) <- paste0("<", group_vals, ">")
+  attr(.fcst, "multi_groups") <- list()
+  attr(.fcst, "multi_groups")[[group_col]] <- paste0("<", group_vals, ">")
 
   .fcst
 
