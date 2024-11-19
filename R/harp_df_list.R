@@ -626,11 +626,17 @@ join_station_groups <- function(
 
   group_col <- rlang::ensym(group_col)
   group_col_name <- rlang::as_name(group_col)
+  group_vals <- union(
+    "All",
+    unique(group_df[[group_col]][group_df[["SID"]] %in% .fcst[["SID"]]])
+  )
 
   if (!is.list(dplyr::pull(group_df, !!group_col))) {
-    group_df <-     dplyr::summarise(
+    group_df <- dplyr::summarise(
       group_df,
-      !!group_col := list(union("All", unique(!!group_col))),
+      !!group_col := paste0(
+        "<", paste(union("All", unique(!!group_col)), collapse = "><"), ">"
+      ),
       .by = "SID"
     )
   }
@@ -639,13 +645,17 @@ join_station_groups <- function(
     join_to_fcst(.fcst, group_df, "left", force = TRUE)
   ))
 
-  dplyr::mutate(
+  .fcst <- dplyr::mutate(
     .fcst,
     !!group_col := dplyr::case_when(
-      sapply(!!group_col, is.null) ~ list("All"),
+      is.na(!!group_col) ~ "<All>",
       .default = !!group_col
     )
   )
+
+  attr(.fcst, group_col_name) <- paste0("<", group_vals, ">")
+
+  .fcst
 
 }
 
