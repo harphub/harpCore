@@ -573,52 +573,56 @@ join_to_fcst.harp_list <- function(
   ))
 }
 
-#' Join station groups to a point forecast data frame or `harp_list`
+#' Join multiple groups to a point forecast data frame or `harp_list`
 #'
-#' `join_station_groups` adds a column to a `harp_det_point_df` or
-#' `harp_ens_point_df` data frame to signify what group a station (SID) belongs
-#' in. This column can then be used as a grouping column in verification
+#' `join_multi_groups` adds a column to a `harp_det_point_df` or a
+#' `harp_ens_point_df` data frame to where each row can be in mulitple groups.
+#' This column can then be used as a grouping column in verification
 #' functions. By default, the built in station group data `station_groups` is
 #' used, but any data frame with a common column with the forecast data that
-#' uniquely identifies a station can be used.
-#'
-#' It should be noted that where stations fall into more than one group, an
-#' extra row of data is created for each group. This may have implications for
-#' memory, so it could be wiser to filter the data for individual station
-#' groups prior to running any harp verification function.
+#' uniquely identifies a row can be used. An attribute is added so that the
+#' verification functions know to treat this column as a multi-group column. All
+#' rows in the output acquire an "All" value, meaning that rows that aren't
+#' included in the grouping data frame are given the value "All" in the output.
 #'
 #' @param group_df a data frame with a column that is common to `.fcst` that
-#'   uniquely identifies a station, and a column for the group name.
+#'   uniquely identifies a row, and a column for the group name.
 #' @param group_col <[`tidy-select`][dplyr::dplyr_tidy_select]> The name of the
 #'   column in `group_df` that contains the name of the station group.
 #'
-#' @return An object of the same class as `.fcst` with a column for station
-#'   group
+#' @return An object of the same class as `.fcst` with a multi-group column.
 #' @export
 #'
 #' @examples
-#' join_station_groups(det_point_df)
+#' join_multi_groups(det_point_df)
 #'
-#' # Note the increase in the number of rows
-#' nrow(det_point_df)
-#' nrow(join_station_groups(det_point_df))
-#'
+#' # Note that each grouping is enclosed in < >
+#' #
 #' # Use custom groups
 #' grps <- data.frame(
 #'   SID = c(1001, 1001, 1002, 1002, 1002),
 #'   letter = c("A", "B", "A", "C", "D")
 #' )
-#' join_station_groups(det_point_df, grps, letter)
+#' join_multi_groups(det_point_df, grps, letter)
 #'
-#' # Where a station is not in a group it gets the value "None" (note also the
+#' # Where a station is not in a group it gets the value "All" (note also the
 #' # use of tidy selection)
 #' ll <- "letter"
 #' grps <- data.frame(
 #'   SID = 1002,
 #'   letter = "A"
 #' )
-#' join_station_groups(det_point_df, grps, {{ll}})
-join_station_groups <- function(
+#' join_multi_groups(det_point_df, grps, {{ll}})
+join_multi_groups <- function(
+  .fcst,
+  group_df  = getExportedValue("harpCore", "station_groups"),
+  group_col = "station_group"
+) {
+  UseMethod("join_multi_groups")
+}
+
+#' @export
+join_multi_groups.data.frame <- function(
   .fcst,
   group_df  = getExportedValue("harpCore", "station_groups"),
   group_col = "station_group"
@@ -658,6 +662,18 @@ join_station_groups <- function(
 
   .fcst
 
+}
+
+#' @export
+join_multi_groups.harp_list <- function(
+  .fcst,
+  group_df  = getExportedValue("harpCore", "station_groups"),
+  group_col = "station_group"
+) {
+  as_harp_list(lapply(
+    .fcst,
+    function(x) join_multi_groups(x, group_df, {{group_col}})
+  ))
 }
 
 #' Add or modify a units column
