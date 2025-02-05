@@ -5,7 +5,7 @@
 \alias{scale_param.data.frame}
 \title{Scale a parameter in a data frame}
 \usage{
-scale_param(x, scaling, new_units, mult = FALSE, ...)
+scale_param(x, scaling, new_units, mult = FALSE, col = NULL, ...)
 
 \method{scale_param}{data.frame}(x, scaling, new_units, mult = FALSE, col, ...)
 }
@@ -20,8 +20,6 @@ be unchanged.}
 
 \item{mult}{Logical. Whether the scaling is multiplicative. The default is
 \code{FALSE}, meaning that the scaling is additive.}
-
-\item{...}{Used by methods.}
 
 \item{col}{The name of the column to scale - if \code{x} is a forecast or
 analysis \code{harp_df} data frame or a \code{harp_list}, the columns will

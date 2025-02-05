@@ -728,7 +728,12 @@ set_units.harp_list <- function(x, units) {
 #'   be unchanged.
 #' @param mult Logical. Whether the scaling is multiplicative. The default is
 #'   \code{FALSE}, meaning that the scaling is additive.
-#' @param ... Used by methods.
+#' @param col A regular expression for the columns to scale. Use "|" in the
+#'   regular expression to select multiple columns. For `harp_df` data frames,
+#'   as in read in by e.g. \code{\link{read_forecast()}},
+#'   \code{\link{read_analysis()}} or \code{\link{read_point_forecast()}}, the
+#'   column selection is automatically done and `col` does not need to be
+#'   specified.
 #'
 #' @return A data frame or \code{harp_list} with scaled parameter.
 #' @export
@@ -758,7 +763,7 @@ set_units.harp_list <- function(x, units) {
 #' # Scaling can be multiplicative
 #' scale_param(det_point_df, 100, "percent", mult = TRUE)
 #' scale_param(ens_point_list, 1/1000, "kg/kg", mult = TRUE)
-scale_param <- function(x, scaling, new_units, mult = FALSE, ...) {
+scale_param <- function(x, scaling, new_units, mult = FALSE, col = NULL, ...) {
   UseMethod("scale_param")
 }
 
@@ -792,8 +797,21 @@ scale_param.data.frame <- function(x, scaling, new_units, mult = FALSE, col, ...
 }
 
 #' @export
-scale_param.harp_df <- function(x, scaling, new_units, mult = FALSE, ...) {
+scale_param.harp_df <- function(
+    x, scaling, new_units, mult = FALSE, col = NULL, ...
+) {
+
   regex <- "_mbr[[:digit:]]{3}|_det$|^fcst$|^forecast$|^anl$|^analysis$"
+  if (!is.null(col)) {
+    regex <- paste(regex, col, sep = "|")
+  }
+
+  if (length(grep(regex, colnames(x))) < 1) {
+    cli::cli_abort(c(
+      "Don't know which columns to scale",
+      "i" = "Use {.arg col} to specify columns to scale as a regular expression."
+    ))
+  }
 
   op  <- `+`
   if (mult) {
@@ -1210,7 +1228,7 @@ ens_stats.harp_ens_point_df <- function(
   }
 
   all_cols    <- colnames(.fcst)
-  member_cols <- grep("_mbr[[:digit:]]{3}", all_cols)
+  member_cols <- grep("_mbr[[:digit:]]{3}", all_cols, value = TRUE)
 
   res <- dplyr::mutate(
     .fcst,
@@ -1252,7 +1270,7 @@ ens_stats.harp_ens_point_df <- function(
     return(res)
   }
 
-  res <- res[-member_cols]
+  res <- dplyr::select(res, -dplyr::all_of(member_cols))
 
   structure(
     res,
@@ -1287,6 +1305,85 @@ ens_stats.harp_list <- function(
       ...
     )
   )
+}
+
+check_thresholds <- function(th, comp, caller = rlang::caller_env()) {
+  if (comp %in% c("between", "outside")) {
+    if (!is.list(th)) {
+      th <- list(th)
+    }
+    if (!all(vapply(th, length, numeric(1)) == 2)) {
+      cli::cli_abort(c(
+        "Incorrect {.arg thresholds} for {.arg comparator} = \"{comp}\"",
+        "i" = paste(
+          "For {.arg comparator} = \"{comp}\", {.arg thresholds} must",
+          "be list of length 2 vectors."
+        )
+      ), call = caller)
+    }
+  }
+  th
+}
+
+get_comparator_func <- function(comparator) {
+
+  switch(
+    comparator,
+    "ge" = function(x, y, ...) as.numeric(x >= y),
+    "gt" = function(x, y, ...) as.numeric(x > y),
+    "le" = function(x, y, ...) as.numeric(x <= y),
+    "lt" = function(x, y, ...) as.numeric(x < y),
+    "eq" = function(x, y, ...) as.numeric(x == y),
+    "between" = function(x, y, include_low, include_high) {
+      lower <- min(y)
+      upper <- max(y)
+      if (include_low && include_high) {
+        return(as.numeric(x >= lower & x <= upper))
+      }
+      if (include_low && !include_high) {
+        return(as.numeric(x >= lower & x < upper))
+      }
+      if (!include_low && include_high) {
+        return(as.numeric(x > lower & x <= upper))
+      }
+      if (!include_low && !include_high) {
+        return(as.numeric(x > lower & x < upper))
+      }
+    },
+    "outside" = function(x, y, include_low, include_high) {
+      lower <- min(y)
+      upper <- max(y)
+      if (include_low && include_high) {
+        return(as.numeric(x <= lower | x >= upper))
+      }
+      if (include_low && !include_high) {
+        return(as.numeric(x <= lower | x > upper))
+      }
+      if (!include_low && include_high) {
+        return(as.numeric(x < lower | x >= upper))
+      }
+      if (!include_low && !include_high) {
+        return(as.numeric(x < lower | x > upper))
+      }
+    }
+  )
+}
+
+get_mbr_colnames <- function(df) {
+  grep("_mbr[0-9]{3}", colnames(df), value = TRUE)
+}
+
+make_thresh_col <- function(th, comp, il, ih) {
+  if (length(th) == 1) {
+    return(paste(comp, th, sep = "_"))
+  }
+  comp1 <- ifelse(il, "ge", "gt")
+  comp2 <- ifelse(ih, "le", "lt")
+  if (comp == "outside") {
+    comp1 <- ifelse(il, "le", "lt")
+    comp2 <- ifelse(ih, "ge", "gt")
+  }
+  paste(comp1, min(th), comp2, max(th), sep = "_")
 }
 
 #' Compute the ensemble probability for a threshold
@@ -1403,48 +1500,31 @@ ens_prob.harp_ens_point_df <- function(
     ...
 ) {
 
-  comparator <- match.arg(comparator)
+  comparator  <- match.arg(comparator)
+  threshold   <- check_thresholds(threshold, comparator)
+  member_cols <- get_mbr_colnames(x)
+  comp_func   <- get_comparator_func(comparator)
 
-  saved_class <- class(x)
 
-  member_cols <- grep("_mbr[[:digit:]]{3}", colnames(x))
-
-  comp_func <- switch(
-    comparator,
-    "ge"      = function(.x) `>=`(.x, threshold),
-    "gt"      = function(.x) `>`(.x, threshold),
-    "le"      = function(.x) `<=`(.x, threshold),
-    "lt"      = function(.x) `<`(.x, threshold),
-    "between" = if (include_low && include_high) {
-      function(.x) .x >= min(threshold) && .x <= max(threshold)
-    } else if (include_low && !include_high) {
-      function(.x) .x >= min(threshold) && .x < max(threshold)
-    } else if (!include_low && include_high) {
-      function(.x) .x > min(threshold) && .x <= max(threshold)
-    } else {
-      function(.x) .x > min(threshold) && .x < max(threshold)
-    },
-    "outside" = if (include_low && include_high) {
-      function(.x) .x <= min(threshold) || .x >= max(threshold)
-    } else if (include_low && !include_high) {
-      function(.x) .x <= min(threshold) || .x > max(threshold)
-    } else if (!include_low && include_high) {
-      function(.x) .x < min(threshold) || .x >= max(threshold)
-    } else {
-      function(.x) .x < min(threshold) || .x > max(threshold)
-    }
-  )
-
-  res <- dplyr::mutate(
-    x,
-    dplyr::across(dplyr::all_of(member_cols), comp_func)
+  res <- bind(
+    lapply(
+      threshold,
+      function(th) dplyr::mutate(
+        x,
+        dplyr::across(
+          dplyr::all_of(member_cols),
+          ~comp_func(.x, th, include_low, include_high)
+        ),
+        threshold =  make_thresh_col(
+          th, comparator, include_low, include_high
+        )
+      )
+    )
   )
 
   res <- ens_stats(res, sd = FALSE)
 
-  colnames(res)[colnames(res) == "ens_mean"] <- paste(
-    "prob", comparator, threshold, sep = "_"
-  )
+  colnames(res)[colnames(res) == "ens_mean"] <- "fcst_prob"
 
   if (keep_members) {
     return(suppressMessages(dplyr::inner_join(x, res)))
