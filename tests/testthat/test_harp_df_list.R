@@ -209,4 +209,34 @@ test_that("expand_date throws warning for bad column selection", {
   )
 })
 
+## member_colnames()
+test_that("Correct member column names are retrieved with member_colnames", {
+  expect_equal(
+    member_colnames(ens_point_df),
+    c("point_mbr000", "point_mbr001")
+  )
+  expect_equal(
+    member_colnames(ens_point_df, exclude = 0),
+    c("point_mbr001")
+  )
+  expect_equal(
+    member_colnames(ens_point_df, exclude = 0, invert = TRUE),
+    c("point_mbr000")
+  )
+  expect_equal(
+    member_colnames(
+      c(colnames(ens_point_df), "point_mbr000_lag1h"),
+      exclude = 0
+    ),
+    c("point_mbr001")
+  )
+  expect_equal(
+    member_colnames(
+      c(colnames(ens_point_df), "point_mbr000_lag1h"),
+      exclude = "mbr000$"
+    ),
+    c("point_mbr001", "point_mbr000_lag1h")
+  )
+
+})
 

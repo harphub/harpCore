@@ -1917,3 +1917,76 @@ deharp.default <- function(x) {
 deharp.harp_list <- function(x) {
   (lapply(x, deharp))
 }
+
+#' Retrieve column names for ensemble members
+#'
+#' Given a `harp_ens_point_df` or a `harp_ens_grid_df` data frame, or a
+#' character vector, the names of the columns containing data for ensemble
+#' members will be retrieved. This is done by searching for the regular
+#' expression "_mbr[0-9]{3}", which is the standard used in harp for naming
+#' ensemble members. Members can be excluded using the `exclude` argument.
+#'
+#' @param x A `harp_ens_point_df`, or a `harp_ens_grid_df` data frame, or a
+#'   character vector of column names.
+#' @param exclude The members to exclude from the output. Note that if numeric,
+#'   lagged member names with the same member number will also be excluded. To
+#'   avoid this, a string or regular expression could be passed.
+#' @param invert Logical. Whether to invert the output. That is, if exclude has
+#'   a value, output only those column names rather than exclude them.
+#'
+#' @returns A character vector of column names.
+#' @export
+#'
+#' @examples
+#' member_colnames(ens_point_df)
+#'
+#' # Exclude member 0
+#' member_colnames(ens_point_df, exclude = 0)
+#'
+#' # Only member 0
+#' member_colnames(ens_point_df, exclude = 0, invert = TRUE)
+#'
+#' # All members with the same number will be exluded for lagged ensembles
+#' lagged_ens <- ens_point_df
+#' lagged_ens$point_mbr000_lag1h = runif(nrow(ens_point_df))
+#' colnames(lagged_ens)
+#' member_colnames(lagged_ens, exclude = 0)
+#'
+#' # Use a regular expression to not exclude the lagged members
+#' member_colnames(lagged_ens, exclude = "_mbr000$")
+member_colnames <- function(x, exclude = NULL, invert = FALSE) {
+  UseMethod("member_colnames")
+}
+
+#' @export
+member_colnames.harp_ens_point_df <- function(
+    x, exclude = NULL, invert = FALSE
+) {
+  member_colnames(colnames(x), exclude = exclude, invert = invert)
+}
+
+#' @export
+member_colnames.harp_ens_grid_df <- member_colnames.harp_ens_point_df
+
+#' @export
+member_colnames.character <- function(x, exclude = NULL, invert = FALSE) {
+  mbr_cols <- grep("_mbr[0-9]{3}", x, value = TRUE)
+
+  if (is.null(exclude)) {
+    return(mbr_cols)
+  }
+
+  if (is.numeric(exclude)) {
+    exclude <- paste(
+      paste0("_mbr", formatC(exclude, width = 3, flag = "0")),
+      collapse = "|"
+    )
+  }
+
+  grep(exclude, mbr_cols, value = TRUE, invert = !invert)
+}
+
+#' @export
+member_colnames.harp_list <- function(x, exclude = NULL, invert = FALSE) {
+  lapply(x, member_colnames, exclude = exclude, invert = invert)
+}

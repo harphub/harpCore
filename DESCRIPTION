@@ -1,6 +1,6 @@
 Package: harpCore
 Title: Core functions and methods for the harp ecosystem
-Version: 0.2.2.9008
+Version: 0.2.2.9009
 Authors@R: 
     person("Andrew", "Singleton", , "andrewts@met.no", role = c("aut", "cre"))
 Description: harp is a collection of packages for reading, analysing and 
@@ -9,7 +9,7 @@ Description: harp is a collection of packages for reading, analysing and
 License: Apache License (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Suggests: 
     maps,
     testthat (>= 3.0.0)
