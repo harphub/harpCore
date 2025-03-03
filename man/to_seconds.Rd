@@ -37,3 +37,6 @@ to_seconds(c("0h", "1h", "2h"))
 # Units can be mixed
 to_seconds(c(paste0(24 * 7, "h"), "7d", "1w"))
 }
+\seealso{
+\code{\link[=from_seconds]{from_seconds()}}
+}

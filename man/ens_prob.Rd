@@ -2,6 +2,7 @@
 % Please edit documentation in R/harp_df_list.R
 \name{ens_prob}
 \alias{ens_prob}
+\alias{ens_prob.harp_ens_point_df}
 \title{Compute the ensemble probability for a threshold}
 \usage{
 ens_prob(
@@ -12,14 +13,27 @@ ens_prob(
   include_high = TRUE,
   ...
 )
+
+\method{ens_prob}{harp_ens_point_df}(
+  x,
+  threshold = 0,
+  comparator = c("ge", "gt", "le", "lt", "between", "outside"),
+  include_low = TRUE,
+  include_high = TRUE,
+  keep_members = FALSE,
+  obs_col = NULL,
+  ...
+)
 }
 \arguments{
 \item{x}{A \code{harp_ens_grid_df} or \code{harp_ens_point_df} data frame, a \code{geolist},
 or a \code{harp_list} containing ensemble data frames.}
 
-\item{threshold}{A threshold for computing binary probabilities. If
-\code{comparator = "between"}, it must be a two element vector. Set to NA
-to use the raw data.}
+\item{threshold}{A threshold for which to compute probabilities. If
+\code{comparator = "between"} or \code{comparator = "outside"}, it must be a vector
+of length 2. For \code{harp_ens_point_df} data frames, this can also be a
+character type with numeric values between 0 and 1 preceded by "q" to
+denote quantile thresholds.}
 
 \item{comparator}{How to compare \code{x} with the threshold to compute
 binary probabilities. Can be \code{"ge"}, \code{"gt"}, \code{"le"}, or
@@ -37,6 +51,14 @@ thresholds in the comparison when \code{comparator = "between"} or
 \code{comparator = "outside"}.}
 
 \item{...}{Used for methods.}
+
+\item{keep_members}{Logical. Whether to keep the ensemble member data after
+computing the probabilities.}
+
+\item{obs_col}{The name of the column containing observations. If not NULL,
+binary probabilities are computed for this column. Can be the name of the
+column quoted or unquoted, or if a variable it must be embraced in double
+curly brackets \code{{{ }}}. Must be supplied if thresholds are quantiles.}
 }
 \value{
 An object of the same class as \code{x} with the probabilities computed

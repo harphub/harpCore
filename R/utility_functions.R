@@ -294,3 +294,12 @@ make_verif_groups <- function(time_groups, groups) {
     )
   )
 }
+
+check_col_exists <- function(df, col) {
+  col <- rlang::enquo(col)
+  if (rlang::quo_is_null(col)) {
+    return(FALSE)
+  }
+  col <- rlang::as_name(col)
+  !is.null(df[[col]])
+}

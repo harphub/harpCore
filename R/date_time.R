@@ -440,6 +440,7 @@ seq_days <- function(from, to, by = 1) {
 #'
 #' @return A named vector where the values are the number of seconds and the
 #'   names are the equivalent in the units given in the input
+#' @seealso [from_seconds()]
 #' @export
 #'
 #' @examples
@@ -497,6 +498,104 @@ to_seconds_error <- function(x) {
     "i" = "{.arg x} should be a numeric value followed by {valid_units}."
   ))
 
+}
+
+#' Convert seconds to another time unit
+#'
+#' Given a vector of values in seconds, `from_seconds()` will return the
+#' vector in the specified time unit. Values will be a character vector with
+#' each element appended with the unit, "s" = seconds, "m" = minutes, "h" =
+#' hours, "d" = days and "w" = weeks. Alternatively the function can return the
+#' values unchanged, but with names added in the specified unit. If the input
+#' already has names, the required unit will be inferred from those names.
+#'
+#' There are also a couple of convenience functions that act as wrappers
+#' around `from_seconds()` - `add_seconds_names()` simply adds names in the
+#' specified unit to the input, ignoring any names that are already there, and
+#' `fix_seconds_names()` ensures that the names are correct with the unit
+#' implied from the names that are already there. This is useful if some
+#' mathematical operation has been done and the names need updating.
+#'
+#' @param x A vector of numeric values in seconds.
+#' @param to The unit to convert from seconds to. Can be "s", "m", "h", "d", "w"
+#'   for seconds, minutes, hours, days and weeks respectively. The default is to
+#'   convert to hours.
+#' @param as_names Logical. Set to `TRUE` to return `x` unchanged, but with the
+#'   values in the new units as names. Default is `FALSE`
+#' @param from_names Logical. Set to `TRUE` to get the time unit to convert to
+#'   from the names of `x`. In this case `to` is ignored. Default is FALSE.
+#' @param num_dp If non integer values are returned, the number of decimal
+#'   places to include in the values in the new units. Set to `NULL` (the
+#'   default) to format "as is".
+#'
+#' @returns A character vector or a named numeric vector.
+#' @seealso [to_seconds()]
+#' @export
+#'
+#' @examples
+#'
+#' from_seconds(c(0, 3600, 7200, 10800))
+#' from_seconds(c(0, 3600, 7200, 10800), as_names = TRUE)
+#'
+#' # Get time unit from names
+#' tt <- to_seconds(seq_hours(0, 9, 3))
+#' tt
+#' from_seconds(tt, from_names = TRUE)
+#'
+#' # Fix the names after mathematical operation
+#' tt + 3600 # Wrong names!
+#' fix_seconds_names(tt + 3600) # Correct names
+from_seconds <- function(
+    x, to = "h", as_names = FALSE, from_names = FALSE, num_dp = NULL
+) {
+
+  unit <- NULL
+  if (from_names) {
+    unit <- regmatches(names(x), regexpr("[a-z]$|[A-Z]$", names(x)))
+  } else {
+    unit <- to
+  }
+
+  scl_fctr <- time_multiplier(tolower(unit))
+  if (any(is.na(scl_fctr))) {
+    allowed_units <- paste0(
+      cli::col_br_blue('"'),
+      glue::glue_collapse(
+        cli::col_br_blue(c("s", "m", "h", "d", "w")),
+        sep = paste0(cli::col_br_blue('"'), ", "),
+        last = paste(cli::col_br_blue('"'), "and/or", cli::col_br_blue('"'))
+      ),
+        cli::col_br_blue('"')
+    )
+    cli::cli_abort(c(
+      "Cannot convert seconds to specified unit.",
+      "x" = "You asked for seconds in {.val {unique(unit)}}.",
+      "i" = "{.arg to} or {.arg names(x)} must be in units of {allowed_units}."
+    ))
+  }
+
+  scaled <- x / scl_fctr
+  if (any((scaled / floor(scaled)) != floor(scaled)) && !is.null(num_dp)) {
+    scaled <- trimws(format(round(scaled, dp), nsmall = num_dp))
+  }
+  if (as_names) {
+    names(x) <- paste0(scaled, unit)
+  } else {
+    x <- paste0(scaled, unit)
+  }
+  x
+}
+
+#' @rdname from_seconds
+#' @export
+fix_seconds_names <- function(x) {
+  from_seconds(x, as_names = TRUE, from_names = TRUE)
+}
+
+#' @rdname from_seconds
+#' @export
+add_seconds_names <- function(x, to = "h") {
+  from_seconds(unname(x), to = to, as_names = TRUE)
 }
 
 #' Round date-times to defined multiples

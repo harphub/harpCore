@@ -114,27 +114,33 @@ pull.harp_list <- function(.data, ...) {
 
 # harp_df methods
 
-# # Can't get group_by to work in a package. The only solution is for users to
-# # run as_harp_df after grouping.
-# #' @importFrom dplyr group_by
-# #' @export
-# #group_by.harp_df <- function(.data, ...) {
-# #  .data <- dplyr::group_by(deharp(.data), ...)
-# #  if (is.element("valid_dttm", colnames(.data))) {
-# #    return(as_harp_df(.data))
-# #  }
-# #  .data
-# #}
-# #
-# ##' @importFrom dplyr ungroup
-# ##' @export
-# #ungroup.harp_df <- function(x, ...) {
-# #  x <- dplyr::ungroup(deharp(x), ...)
-# #  if (is.element("valid_dttm", colnames(x))) {
-# #    return(as_harp_df(x))
-# #  }
-# #  x
-# #}
+# Can't get group_by to work in a package. The only solution is for users to
+# run as_harp_df after grouping.
+#' @importFrom dplyr group_by
+#' @export
+group_by.harp_df <- function(.data, ...) {
+  .data <- NextMethod()
+  if (
+    is.element("valid_dttm", colnames(.data)) &&
+      inherits(.data$valid_dttm, "POSIXt")
+  ) {
+  return(as_harp_df(.data))
+  }
+  .data
+}
+#
+#' @importFrom dplyr ungroup
+#' @export
+ungroup.harp_df <- function(x, ...) {
+  x <- NextMethod()
+  if (
+    is.element("valid_dttm", colnames(x)) &&
+      inherits(x$valid_dttm, "POSIXt")
+  ) {
+    return(as_harp_df(x))
+  }
+  x
+}
 #
 # #' #' @importFrom dplyr dplyr_reconstruct
 # #' #' @export

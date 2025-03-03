@@ -1399,6 +1399,11 @@ make_thresh_col <- function(th, comp, il, ih) {
 #' @param x A `harp_ens_grid_df` or `harp_ens_point_df` data frame, a `geolist`,
 #'   or a `harp_list` containing ensemble data frames.
 #' @inheritParams nbhd_smooth
+#' @param threshold A threshold for which to compute probabilities. If
+#'   `comparator = "between"` or `comparator = "outside"`, it must be a vector
+#'   of length 2. For `harp_ens_point_df` data frames, this can also be a
+#'   character type with numeric values between 0 and 1 preceded by "q" to
+#'   denote quantile thresholds.
 #' @param ... Used for methods.
 #' @return An object of the same class as `x` with the probabilities computed
 #' @export
@@ -1427,7 +1432,7 @@ ens_prob <- function(
 
 #' @export
 ens_prob.harp_geolist <- function(
-    x,
+  x,
   threshold    = 0,
   comparator   = c("ge", "gt", "le", "lt", "between", "outside"),
   include_low  = TRUE,
@@ -1437,9 +1442,6 @@ ens_prob.harp_geolist <- function(
   mean(nbhd_smooth(x, 0, threshold, comparator, include_low, include_high))
 }
 
-
-
-#' @inheritParams geo_transform
 #' @export
 ens_prob.harp_ens_grid_df <- function(
   x,
@@ -1489,6 +1491,13 @@ ens_prob.harp_ens_grid_df <- function(
 
 }
 
+#' @param obs_col The name of the column containing observations. If not NULL,
+#'   binary probabilities are computed for this column. Can be the name of the
+#'   column quoted or unquoted, or if a variable it must be embraced in double
+#'   curly brackets `{{ }}`. Must be supplied if thresholds are quantiles.
+#' @param keep_members Logical. Whether to keep the ensemble member data after
+#'   computing the probabilities.
+#' @rdname ens_prob
 #' @export
 ens_prob.harp_ens_point_df <- function(
     x,
@@ -1497,32 +1506,106 @@ ens_prob.harp_ens_point_df <- function(
     include_low  = TRUE,
     include_high = TRUE,
     keep_members = FALSE,
+    obs_col      = NULL,
     ...
 ) {
+
+  obs_prob <- TRUE
+  obs_col  <- rlang::enquo(obs_col)
+  if (rlang::quo_is_null(obs_col)) {
+    obs_prob <- FALSE
+    obs_col  <- NULL
+  }
+
+  if (obs_prob) {
+    obs_col <- rlang::as_name(obs_col)
+    if (!check_col_exists(x, {{obs_col}})) {
+      cli::cli_warn(c(
+        "{.arg obs_col} not found in {.arg x}.",
+        "!" = "You supplied {.arg obs_col} = '{obs_col}'.",
+        "i" = "No probabilities will be computes for observations."
+      ))
+      obs_prob <- FALSE
+    }
+  }
 
   comparator  <- match.arg(comparator)
   threshold   <- check_thresholds(threshold, comparator)
   member_cols <- get_mbr_colnames(x)
   comp_func   <- get_comparator_func(comparator)
 
-
+  threshold <- lapply(threshold, parse_thresholds)
+  if (any(sapply(threshold, function(t) t$quantiles))) {
+    if (is.null(obs_col)) {
+      cli::cli_abort(
+        "{.arg obs_col} must be supplied for quantile thresholds."
+      )
+    }
+    if (!check_col_exists(x, {{obs_col}})) {
+      cli::cli_abort(c(
+        "{.arg obs_col} not found in {.arg x}.",
+        "x" = "You supplied {.arg obs_col} = '{obs_col}'."
+      ))
+    }
+  }
   res <- bind(
     lapply(
       threshold,
-      function(th) dplyr::mutate(
-        x,
-        dplyr::across(
-          dplyr::all_of(member_cols),
-          ~comp_func(.x, th, include_low, include_high)
-        ),
-        threshold =  make_thresh_col(
-          th, comparator, include_low, include_high
+      function(th) {
+        if (th$quantiles) {
+          q <- extract_numeric(th$thresholds)
+          res <- dplyr::mutate(
+            x,
+            dplyr::across(
+              dplyr::all_of(member_cols),
+              ~comp_func(
+                .x, quantile(.data[[obs_col]], q), include_low, include_high
+              )
+            )
+          )
+          if (obs_prob) {
+            res <- dplyr::mutate(
+              res,
+              obs_prob = as.integer(comp_func(
+                .data[[obs_col]],
+                quantile(.data[[obs_col]], q),
+                include_low,
+                include_high
+              ))
+            )
+          }
+        } else {
+          res <- dplyr::mutate(
+            x,
+            dplyr::across(
+              dplyr::all_of(member_cols),
+              ~comp_func(.x, th$thresholds, include_low, include_high)
+            )
+          )
+          if (obs_prob) {
+            res <- dplyr::mutate(
+              res,
+              obs_prob = as.integer(comp_func(
+                .data[[obs_col]], th$thresholds, include_low, include_high
+              ))
+            )
+          }
+        }
+        chr_thresh <- th$thresholds
+        if (th$quantiles) {
+          chr_thresh <- paste0("q", chr_thresh)
+        }
+        dplyr::mutate(
+          res,
+          threshold =  make_thresh_col(
+            chr_thresh, comparator, include_low, include_high
+          )
         )
-      )
+      }
     )
   )
 
-  res <- ens_stats(res, sd = FALSE)
+  res <- ens_stats(as_harp_df(res), sd = FALSE)
 
   colnames(res)[colnames(res) == "ens_mean"] <- "fcst_prob"
 
