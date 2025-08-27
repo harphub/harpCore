@@ -4,13 +4,16 @@
 \alias{make_verif_groups}
 \title{Combine groups to make a list of all possible verification groups}
 \usage{
-make_verif_groups(time_groups, groups)
+make_verif_groups(time_groups, groups = NULL, all_groups = NULL)
 }
 \arguments{
 \item{time_groups}{Groups that could be used as a time axis in a plot. Can be
 any combination of "lead_time", "valid_dttm" and "valid_hour".}
 
 \item{groups}{Other group columns to use in a verification.}
+
+\item{all_groups}{Variables to appear in all groups. This will also create
+group combinations from \code{groups} that do not include \code{time_groups}.}
 }
 \value{
 A list of group combinations
@@ -26,5 +29,12 @@ make_verif_groups("lead_time", c("fcst_cycle", "station_group"))
 make_verif_groups(
   c("lead_time", "valid_dttm", "valid_hour"),
   c("fcst_cycle", "station_group")
+)
+
+# Use all_groups to, for eaxample, group by pressure level
+make_verif_groups(
+  c("lead_time", "valid_dttm", "valid_hour"),
+  c("fcst_cycle", "station_group"),
+  "p"
 )
 }

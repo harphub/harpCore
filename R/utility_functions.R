@@ -261,6 +261,8 @@ parse_thresholds <- function(x) {
 #' @param time_groups Groups that could be used as a time axis in a plot. Can be
 #'   any combination of "lead_time", "valid_dttm" and "valid_hour".
 #' @param groups Other group columns to use in a verification.
+#' @param all_groups Variables to appear in all groups. This will also create
+#'   group combinations from `groups` that do not include `time_groups`.
 #'
 #' @return A list of group combinations
 #' @export
@@ -271,7 +273,14 @@ parse_thresholds <- function(x) {
 #'   c("lead_time", "valid_dttm", "valid_hour"),
 #'   c("fcst_cycle", "station_group")
 #' )
-make_verif_groups <- function(time_groups, groups) {
+#'
+#' # Use all_groups to, for eaxample, group by pressure level
+#' make_verif_groups(
+#'   c("lead_time", "valid_dttm", "valid_hour"),
+#'   c("fcst_cycle", "station_group"),
+#'   "p"
+#' )
+make_verif_groups <- function(time_groups, groups = NULL, all_groups = NULL) {
   time_groups  <- unique(time_groups)
   poss_tm_grps <- c("lead_time", "valid_dttm", "valid_hour")
   bad_tm_grps  <- setdiff(time_groups, poss_tm_grps)
@@ -283,16 +292,23 @@ make_verif_groups <- function(time_groups, groups) {
     ))
   }
   groups <- unlist(
-    lapply(seq_along(groups), function(x) utils::combn(groups, x, simplify = FALSE)),
+    lapply(
+      seq_along(groups),
+      function(x) utils::combn(groups, x, simplify = FALSE)
+    ),
     recursive = FALSE
   )
-  c(
+  res <- c(
     as.list(time_groups),
     unlist(
       lapply(time_groups, function(x) lapply(groups, function(y) c(x, y))),
       recursive = FALSE
     )
   )
+  if (is.null(all_groups)) {
+    return(res)
+  }
+  lapply(c(list(NULL), groups, res), function(x) union(x, all_groups))
 }
 
 check_col_exists <- function(df, col) {
