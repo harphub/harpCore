@@ -6,13 +6,16 @@
 # of the data frame
 
 # Helper function to determine depth of a list
-depth <- function(x,x_depth = 0){
+depth <- function(x) {
   if (!is.list(x)) {
-    return(x_depth)
+    return(0)  # Base case: not a list, depth is 0
+  } else if (length(x) == 0) {
+    return(1)  # Empty list has depth 1
   } else {
-    return(max(unlist(lapply(x, depth, x_depth = x_depth + 1))))
+    return(1 + max(sapply(x, depth)))  # Recur for all elements and take max depth
   }
 }
+
 
 #' Coerce to a harp_df data frame
 #'
@@ -213,13 +216,77 @@ as_harp_list <- function(...) {
   if (length(x) == 1 && depth(x) > 1 && !is.data.frame(x[[1]])) {
     x <- x[[1]]
   }
+
+  valid_nrows <- vapply(x, function(d) get_data_num_rows(d) > 0, logical(1))
+  x <- x[valid_nrows]
+  if (length(x) < 1) {
+    cli::cli_abort(c(
+      "No data to convert to a {.cls harp_list}.",
+      "x" = "You supplied a list where all entries have 0 rows"
+    ))
+  }
+  valid_types <- vapply(
+    x,
+    function(d) inherits(d, "harp_df") || inherits(d, "arrow_dplyr_query"),
+    logical(1)
+  )
+  valid_entries <- valid_nrows & valid_types
+  if (length(which(valid_entries)) < length(x)) {
+    invalid_entries <- which(!valid_entries)
+    if (!is.null(names(x))) {
+      invalid_entries <- names(x)[invalid_entries]
+    }
+    cli::cli_warn(c(
+      "Not all elements are valid",
+      "!" = paste(
+        "{invalid entries} either have 0 rows or are not a {.cls harp_df}",
+        "data frame or an uncollected {.cls arrow_dplyr_query}."
+      )
+    ))
+    x <- x[valid_entries]
+  }
   if (is.null(names(x))) {
-    stop("All ... must be named.")
+    names_from_df <- unlist(lapply(x, get_model_name))
+    if (length(names_from_df) != length(x)) {
+      cli::cli_abort(c(
+        "Cannot get model names from data.",
+        "x" = "You supplied data without names and cannot infer names.",
+        "i" = "Add names before calling {.fun as_harp_list}."
+      ))
+    }
   }
-  if (!all(sapply(x, inherits, "harp_df"))) {
-    stop("All ... must be `harp_df` data frames")
+  if (all(sapply(x, inherits, "harp_df"))) {
+    return(structure(x, class = c("harp_list", class(x))))
   }
-  structure(x, class = c("harp_list", class(x)))
+  if (any(sapply(x, inherits, "arrow_dplyr_query"))) {
+    return(structure(x, class = c("harp_list_uncollected", class(x))))
+  }
+  cli::cli_abort(c(
+    "Cannot create a {.cls harp_list}.",
+    "x" = paste(
+      "You provided a list that comprises",
+      "{.cls {unique(sapply(x, class))}} elements."
+    ),
+    "i" = paste(
+      "All elements should be {.cls harp_df} data frames",
+      "or uncollected {.cls arrow_dplyr_query} uncollected dataset."
+    )
+  ))
+
+}
+
+get_model_name <- function(df) {
+  model_name <- unique(df$sub_model)
+  if (length(model_name) != 1) {
+    model_name <- unique(df$fcst_model)
+  }
+  if (length(model_name) != 1) {
+    model_name <- unique(df$anl_model)
+  }
+  if (length(model_name) != 1) {
+    model_name <- NULL
+  }
+  model_name
 }
 
 #' @rdname as_harp_list
@@ -469,4 +536,19 @@ print.harp_verif <- function(x, n = NULL, ...) {
     ))
   }
 
+}
+
+# Function to get number of rows that also works on an arrow_dplyr_query
+get_data_num_rows <- function(x, tries = 1, max_tries = 10) {
+  num_rows <- nrow(x)
+  if (is.na(num_rows) && tries < max_tries) {
+    return(get_data_num_rows(x$.data, tries + 1))
+  }
+  if (is.null(num_rows)) {
+    cli::cli_abort(c(
+      "Cannot extract number of rows after nesting down {tries} levels",
+      "i" = "There was some prblem accessing any tabular data in this dataset."
+    ))
+  }
+  num_rows
 }
