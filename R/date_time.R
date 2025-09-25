@@ -431,11 +431,11 @@ seq_days <- function(from, to, by = 1) {
 #' @param x A character or numeric vector. The units of the input is specified
 #'   by a single character:
 #'   \itemize{
-#'     \item{s} {seconds}
-#'     \item{m} {minutes}
-#'     \item{h} {hours}
-#'     \item{d} {days}
-#'     \item{w} {weeks}
+#'     \item s: seconds
+#'     \item m: minutes
+#'     \item h: hours
+#'     \item d: days
+#'     \item w: weeks
 #'   }
 #'
 #' @return A named vector where the values are the number of seconds and the
@@ -576,7 +576,7 @@ from_seconds <- function(
 
   scaled <- x / scl_fctr
   if (any((scaled / floor(scaled)) != floor(scaled)) && !is.null(num_dp)) {
-    scaled <- trimws(format(round(scaled, dp), nsmall = num_dp))
+    scaled <- trimws(format(round(scaled, num_dp), nsmall = num_dp))
   }
   if (as_names) {
     names(x) <- paste0(scaled, unit)

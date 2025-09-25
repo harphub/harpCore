@@ -222,7 +222,10 @@ as_harp_list <- function(...) {
   if (length(x) < 1) {
     cli::cli_abort(c(
       "No data to convert to a {.cls harp_list}.",
-      "x" = "You supplied a list where all entries have 0 rows"
+      "x" = paste(
+        "You supplied a list where all entries are either",
+        "not {.cls data.frame} or have 0 rows."
+      )
     ))
   }
   valid_types <- vapply(
@@ -236,10 +239,10 @@ as_harp_list <- function(...) {
     if (!is.null(names(x))) {
       invalid_entries <- names(x)[invalid_entries]
     }
-    cli::cli_warn(c(
+    cli::cli_abort(c(
       "Not all elements are valid",
       "!" = paste(
-        "{invalid entries} either have 0 rows or are not a {.cls harp_df}",
+        "{invalid_entries} either have 0 rows or are not a {.cls harp_df}",
         "data frame or an uncollected {.cls arrow_dplyr_query}."
       )
     ))
@@ -254,6 +257,7 @@ as_harp_list <- function(...) {
         "i" = "Add names before calling {.fun as_harp_list}."
       ))
     }
+    names(x) <- names_from_df
   }
   if (all(sapply(x, inherits, "harp_df"))) {
     return(structure(x, class = c("harp_list", class(x))))
@@ -276,12 +280,12 @@ as_harp_list <- function(...) {
 }
 
 get_model_name <- function(df) {
-  model_name <- unique(df$sub_model)
+  model_name <- unique(suppressWarnings(df$sub_model))
   if (length(model_name) != 1) {
-    model_name <- unique(df$fcst_model)
+    model_name <- unique(suppressWarnings(df$fcst_model))
   }
   if (length(model_name) != 1) {
-    model_name <- unique(df$anl_model)
+    model_name <- unique(suppressWarnings(df$anl_model))
   }
   if (length(model_name) != 1) {
     model_name <- NULL
@@ -541,6 +545,9 @@ print.harp_verif <- function(x, n = NULL, ...) {
 # Function to get number of rows that also works on an arrow_dplyr_query
 get_data_num_rows <- function(x, tries = 1, max_tries = 10) {
   num_rows <- nrow(x)
+  if (is.null(num_rows)) {
+    return(0)
+  }
   if (is.na(num_rows) && tries < max_tries) {
     return(get_data_num_rows(x$.data, tries + 1))
   }

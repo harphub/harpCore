@@ -10,7 +10,7 @@ expand_date(.data, col, text_months = FALSE)
 \item{.data}{A data frame or harp_list of data frames}
 
 \item{col}{The name of the date-time to column to be expanded. Can be quoted
-or unquoted. If using a variable, it should be wrapped in {{.}}}
+or unquoted. If using a variable, it should be wrapped in \code{{{ }}}.}
 
 \item{text_months}{Logical. If TRUE, month names are used rather than numbers.}
 }

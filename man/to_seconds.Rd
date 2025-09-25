@@ -10,11 +10,11 @@ to_seconds(x)
 \item{x}{A character or numeric vector. The units of the input is specified
 by a single character:
 \itemize{
-\item{s} {seconds}
-\item{m} {minutes}
-\item{h} {hours}
-\item{d} {days}
-\item{w} {weeks}
+\item s: seconds
+\item m: minutes
+\item h: hours
+\item d: days
+\item w: weeks
 }}
 }
 \value{

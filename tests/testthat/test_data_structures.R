@@ -75,19 +75,10 @@ test_df <- test_df[c(1, 6, 7)]
 
 # Tests for harp_list
 test_that("as_harp_list throws error for non harp_df", {
-  expect_error(as_harp_list(a = 2), "All ... must be `harp_df` data frames")
-  expect_error(as_harp_list(a = 2, b = 2), "All ... must be `harp_df` data frames")
-  expect_error(as_harp_list(a = test_df, b = test_df), "All ... must be `harp_df` data frames")
-  expect_error(as_harp_list(a = test_df, b = 2), "All ... must be `harp_df` data frames")
-})
-
-test_that("as_harp_list throws error when arguments aren't named", {
-  expect_error(as_harp_list(2), "All ... must be named")
-  expect_error(as_harp_list(2, 2), "All ... must be named")
-  expect_error(as_harp_list(list(2)), "All ... must be named")
-  expect_error(as_harp_list(list(2, 2)), "All ... must be named")
-  expect_error(as_harp_list(as_harp_df(test_df)), "All ... must be named")
-  expect_error(as_harp_list(list(as_harp_df(test_df))), "All ... must be named")
+  expect_error(as_harp_list(a = 2), "No data to convert to a <harp_list>")
+  expect_error(as_harp_list(a = 2, b = 2), "No data to convert to a <harp_list>")
+  expect_error(as_harp_list(a = test_df, b = test_df), "Not all elements are valid")
+  expect_error(as_harp_list(a = test_df, b = 2), "Not all elements are valid")
 })
 
 test_that("as_harp_list returns a harp_list", {
@@ -248,3 +239,4 @@ test_that("as_det returns the correct member", {
   )
 
 })
+

@@ -24,7 +24,7 @@ A character vector of column names.
 Given a \code{harp_ens_point_df} or a \code{harp_ens_grid_df} data frame, or a
 character vector, the names of the columns containing data for ensemble
 members will be retrieved. This is done by searching for the regular
-expression "_mbr[0-9]{3}", which is the standard used in harp for naming
+expression \code{"_mbr[0-9]{3}"}, which is the standard used in harp for naming
 ensemble members. Members can be excluded using the \code{exclude} argument.
 }
 \examples{

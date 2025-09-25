@@ -11,6 +11,8 @@ join_multi_groups(
 )
 }
 \arguments{
+\item{.fcst}{A data frame or a \verb{<harp_list>}}
+
 \item{group_df}{a data frame with a column that is common to \code{.fcst} that
 uniquely identifies a row, and a column for the group name.}
 

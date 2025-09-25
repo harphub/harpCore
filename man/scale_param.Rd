@@ -24,6 +24,8 @@ be unchanged.}
 \item{col}{The name of the column to scale - if \code{x} is a forecast or
 analysis \code{harp_df} data frame or a \code{harp_list}, the columns will
 be selected automatically and \code{col} is ignored.}
+
+\item{...}{Used by methods.}
 }
 \value{
 A data frame or \code{harp_list} with scaled parameter.

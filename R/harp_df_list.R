@@ -325,7 +325,7 @@ pivot_to_wide <- function(.data) {
 #'
 #' @param .data A data frame or harp_list of data frames
 #' @param col The name of the date-time to column to be expanded. Can be quoted
-#'   or unquoted. If using a variable, it should be wrapped in {{.}}
+#'   or unquoted. If using a variable, it should be wrapped in `{{ }}`.
 #' @param text_months Logical. If TRUE, month names are used rather than numbers.
 #'
 #' @return A data frame or harp_list of data frames with new columns for the
@@ -585,6 +585,7 @@ join_to_fcst.harp_list <- function(
 #' rows in the output acquire an "All" value, meaning that rows that aren't
 #' included in the grouping data frame are given the value "All" in the output.
 #'
+#' @param .fcst A data frame or a `<harp_list>`
 #' @param group_df a data frame with a column that is common to `.fcst` that
 #'   uniquely identifies a row, and a column for the group name.
 #' @param group_col <[`tidy-select`][dplyr::dplyr_tidy_select]> The name of the
@@ -734,6 +735,7 @@ set_units.harp_list <- function(x, units) {
 #'   \code{\link{read_analysis()}} or \code{\link{read_point_forecast()}}, the
 #'   column selection is automatically done and `col` does not need to be
 #'   specified.
+#' @param ... Used by methods.
 #'
 #' @return A data frame or \code{harp_list} with scaled parameter.
 #' @export
@@ -1559,7 +1561,8 @@ ens_prob.harp_ens_point_df <- function(
             dplyr::across(
               dplyr::all_of(member_cols),
               ~comp_func(
-                .x, quantile(.data[[obs_col]], q), include_low, include_high
+                .x, stats::quantile(.data[[obs_col]], q),
+                include_low, include_high
               )
             )
           )
@@ -1568,7 +1571,7 @@ ens_prob.harp_ens_point_df <- function(
               res,
               obs_prob = as.integer(comp_func(
                 .data[[obs_col]],
-                quantile(.data[[obs_col]], q),
+                stats::quantile(.data[[obs_col]], q),
                 include_low,
                 include_high
               ))
@@ -2006,7 +2009,7 @@ deharp.harp_list <- function(x) {
 #' Given a `harp_ens_point_df` or a `harp_ens_grid_df` data frame, or a
 #' character vector, the names of the columns containing data for ensemble
 #' members will be retrieved. This is done by searching for the regular
-#' expression "_mbr[0-9]{3}", which is the standard used in harp for naming
+#' expression `"_mbr[0-9]{3}"`, which is the standard used in harp for naming
 #' ensemble members. Members can be excluded using the `exclude` argument.
 #'
 #' @param x A `harp_ens_point_df`, or a `harp_ens_grid_df` data frame, or a
