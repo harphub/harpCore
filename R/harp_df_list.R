@@ -313,6 +313,62 @@ pivot_to_wide <- function(.data) {
   )
 }
 
+#' Title
+#'
+#' @param x
+#' @param values_from
+#'
+#' @returns
+#'
+#' @examples
+#' @name pivot_parameters
+NULL
+
+
+#' @rdname pivot_parameters
+#' @export
+pivot_parameters_wider <- function(x, values_from) {
+  UseMethod("pivot_parameters_wider")
+}
+
+#' @rdname pivot_parameters
+#' @export
+pivot_parameters_longer <- function(x, cols, values_to) {
+  UseMethod("pivot_parameters_longer")
+}
+
+#' @export
+pivot_parameters_wider.harp_df <- function(x, values_from) {
+  param_info <- dplyr::distinct(
+    dplyr::select(x, dplyr::any_of(c("parameter", "units", "level_type")))
+  )
+  res <- tidyr::pivot_wider(
+    dplyr::select(x, -dplyr::any_of(c("units", "level_type"))),
+    names_from  = "parameter",
+    values_from = {{values_from}}
+  )
+  res <- as_harp_df(res)
+  attr(res, "param_info") <- param_info
+  res
+}
+
+#' @export
+pivot_parameters_longer.harp_df <- function(x, cols, values_to) {
+  param_info <- attr(x, "param_info")
+  if (missing(cols) && !is.null(param_info)) {
+    cols <- unique(param_info$parameter)
+  }
+  res <- tidyr::pivot_longer(
+    x, {{cols}}, names_to = "parameter", values_to = values_to
+  )
+  if (!is.null(param_info) && is.element("parameter", colnames(param_info))) {
+    res <- dplyr::inner_join(res, param_info, by = "parameter")
+  }
+  as_harp_df(res)
+}
+
+
+
 #' Expand date-time column in a data frame
 #'
 #' \code{expand_date} extracts the year, month, day, hour and minute from

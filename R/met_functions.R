@@ -120,6 +120,109 @@ q_to_rh <- function(q, t, p = 1013.25, a = 17.67, b = 243.5) {
   rh
 }
 
+#' Compute virtual temperature
+#'
+#' The virtual temperature is computed from the air temperature and the
+#' specific humidity of the air using the formula `Tv = T(1 + 0.61Q)`. If the
+#' function suspects that the inputs are in the wrong units (degrees C instead
+#' of Kelvin; g/kg instead of kg/kg), they are converted to the correct units
+#' with a warning.
+#'
+#' @param temp Air temperature in K.
+#' @param spec_hum Specific humidity in kg/kg.
+#'
+#' @returns Virtual temperature in K.
+#' @export
+#'
+#' @examples
+#' virtual_temp(293.15, 0.01)
+#'
+#' # Corrections to inputs made if in wrong units
+#' virtual_temp(20, 10)
+virtual_temp <- function(temp, spec_hum) {
+  temp_test <- mean(temp, na.rm = TRUE)
+  if (is_geolist(temp_test)) {
+    temp_test <- mean(geofield(temp_test), na.rm = TRUE)
+  }
+  if (temp_test < 100) {
+    txt <- "You supplied `temp`"
+    if (length(temp) > 1) {
+      txt <- paste(txt, "with mean")
+    }
+    cli::cli_warn(c(
+      "{.arg temp} suspected to be in degrees C.",
+      "i" = "{txt} = {temp_test}. Converted to Kelvin."
+    ))
+    temp <- temp + 273.15
+  }
+  spec_hum_test <- mean(spec_hum, na.rm = TRUE)
+  if (is_geolist(spec_hum_test)) {
+    spec_hum_test <- mean(geofield(spec_hum_test), na.rm = TRUE)
+  }
+  if (spec_hum_test > 0.1) {
+    txt <- "You supplied `spec_hum`"
+    if (length(spec_hum) > 1) {
+      txt <- paste(txt, "with mean")
+    }
+    cli::cli_warn(c(
+      "{.arg spec_hum} suspected to be in g/kg.",
+      "i" = "{txt} = {temp_test}. Converted to kg/kg."
+    ))
+    spec_hum <- spec_hum / 1000
+  }
+  temp * (1 + 0.61 * spec_hum)
+}
+
+#' Potential temperature
+#'
+#' @description
+#' Compute the potential temperature of an air parcel - that is the temperature
+#' it would have if it were brought adiabatically to a reference temperature.
+#'
+#' The potential temperature is defined as:
+#' \deqn{ \theta = T \left( \frac{p_0}{p} \right)^{R/c_p} }
+#'
+#' where \eqn{\theta} is potential temperature, \eqn{T} is temperature,
+#' \eqn{p} is pressure, \eqn{p_0} is reference pressure, \eqn{R} is the
+#' gas constant for dry air, and \eqn{c_p} is the specific heat at
+#' constant pressure.
+#'
+#' @param temp Temperature (K)
+#' @param press Air parcel pressure (Pa)
+#' @param press_ref Reference pressure (Pa). The default is 100000 Pa.
+#'
+#' @returns Potential temperature (K)
+#' @export
+#'
+#' @examples
+#' potential_temp(280, 85000)
+potential_temp <- function(temp, press, press_ref = 100000) {
+  UseMethod("potential_temp")
+}
+
+#' @export
+potential_temp.default <- function(temp, press, press_ref = 100000) {
+  temp * (press_ref / press) ^ 0.286
+}
+
+#' @export
+potential_temp.harp_xs <- function(temp, press, press_ref = 100000) {
+  press_col <- intersect(c("value", "pressure"), colnames(press))
+  temp$value <- potential_temp(temp$value, press[[press_col]], press_ref)
+  temp
+}
+
+#' @export
+potential_temp.harp_xs_list <- function(temp, press, press_ref = 100000) {
+  structure(
+    mapply(
+      potential_temp, temp, press, MoreArgs = list(press_ref = press_ref),
+      SIMPLIFY = FALSE
+    ),
+    class = class(temp)
+  )
+}
+
 #' Compute the vorticity or divergence from vector components
 #'
 #' These functions compute the vorticity and divergence of a vector field. If
@@ -283,3 +386,36 @@ first_derivative <- function(x, direction = c("x", "y")) {
 
   res
 }
+
+#' Convert geopotential to height
+#'
+#' A simple conversion of geopotential in m^2 / s^2 to height in m, by dividing
+#' by acceleration due to gravity (g = 9.80665).
+#'
+#' @param x
+#'
+#' @returns The same class as x
+#' @export
+geopotential_to_height <- function(x) {
+  UseMethod("geopotential_to_height")
+}
+
+#' @export
+geopotential_to_height.default <- function(x) {
+  x / 9.80665
+}
+
+#' @export
+geopotential_to_height.harp_xs <- function(x) {
+  x$value <- x$value / 9.80665
+  x
+}
+
+#' @export
+geopotential_to_height.harp_xs_list <- function(x) {
+  structure(
+    lapply(x, geopotential_to_height),
+    class = class(x)
+  )
+}
+

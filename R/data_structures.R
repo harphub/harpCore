@@ -65,7 +65,7 @@ as_harp_df.data.frame <- function(x) {
   col_classes <- lapply(1:ncol(x), function(i) class(x[[i]]))
   if (any(sapply(col_classes, function(x) any(grepl("geolist", x))))) {
     classes <- c("harp_grid_df", classes)
-  } else if (any(sapply(col_classes, function(x) any(grepl("xslist", x))))) {
+  } else if (any(sapply(col_classes, function(x) any(grepl("harp_xs_list", x))))) {
     classes <- c("harp_xs_df", classes)
   } else {
     classes <- c("harp_point_df", classes)

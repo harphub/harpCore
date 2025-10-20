@@ -81,3 +81,21 @@
 #'
 #' @source selection.pm from HARMONIE / HIRLAM monitor
 "station_groups"
+
+#' Harmonie level definitions
+#'
+#' A dataset with a & b coefficients for different hybrid level definitions. The
+#' dataset is a list of data frames with names <full/half><nlevel>\{_extra
+#' info\}, with full or half stating whether the data are on full (mass) or half
+#' (flux) levels, nlevel is the number of full levels, and \{_extra info\} is an
+#' optional label that gives more information about the data, e.g. ecmwf for
+#' levels used by ECMWF. The data in the data frames are ordered from the top to
+#' the bottom of the atmosphere.
+#'
+#' @format A named list of data frames with columns: \describe{
+#'   \item{a}{The a coefficient in Pa}
+#'   \item{b}{The b coefficient in the range 0 - 1}
+#' }
+#'
+#' @source Vertical_levels.pm from Harmonie code base.
+"harmonie_levels"
