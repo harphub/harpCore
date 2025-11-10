@@ -885,7 +885,7 @@ geo_upscale.geofield <- function(
 }
 
 #' @export
-geo_upscale.geolist <- function(
+geo_upscale.harp_geolist <- function(
   x,
   factor,
   method              = "mean",
