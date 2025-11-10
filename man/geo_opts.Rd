@@ -54,8 +54,10 @@ contain other columns, which will be retained in the output.}
 neighbour, "bilinear", or "bicubic." The default is "bilinear". For
 \code{geo_upscale}, can be any function that summarises a vector to a
 single value and can found with \code{\link[base]{match.fun}}, the default
-being "mean". A further option is "downsample", dwhich is described in the
-argument for \code{downsample_location}.}
+being "mean". A further option is "downsample", which is described in the
+argument for \code{downsample_location}. For \code{geo_regrid}, may also be "upscale"
+for regridding to a coarser grid. This will take the mean of all the
+pixel centroids of \code{x} that fall within a grid sqaure of the new grid.}
 
 \item{mask}{A mask to prevent grid points being used in the interpolation.
 Should be on the same grid as \code{x} and grid points with values of 0 or FALSE

@@ -222,7 +222,7 @@ geo_points.harp_grid_df <- function(
 geo_regrid <- function(
     x,
     new_grid,
-    method       = c("bilinear", "nearest", "bicubic"),
+    method       = c("bilinear", "nearest", "bicubic", "upscale"),
     mask         = NULL,
     new_mask     = NULL,
     weights      = NULL,
@@ -291,7 +291,7 @@ check_args_geo_regrid <- function(
 geo_regrid.geofield <- function(
     x,
     new_grid,
-    method       = c("bilinear", "nearest", "bicubic"),
+    method       = c("bilinear", "nearest", "bicubic", "upscale"),
     mask         = NULL,
     new_mask     = NULL,
     weights      = NULL,
@@ -342,7 +342,13 @@ geo_regrid.geofield <- function(
     weights  <- geo_weights_regrid(dom, new_dom, method, mask, new_mask)
   }
 
-  res <- meteogrid::regrid(x, weights = weights)
+  if (method == "upscale") {
+    res <- meteogrid::upscale_regrid(
+      x, attr(weights, "newdomain"), weights = weights
+    )
+  } else {
+    res <- meteogrid::regrid(x, new_dom, weights = weights)
+  }
 
   if (keep_weights) {
     attr(res, "weights") <- weights
@@ -355,7 +361,7 @@ geo_regrid.geofield <- function(
 geo_regrid.harp_geolist <- function(
     x,
     new_grid,
-    method       = c("bilinear", "nearest", "bicubic"),
+    method       = c("bilinear", "nearest", "bicubic", "upscale"),
     mask         = NULL,
     new_mask     = NULL,
     weights      = NULL,
@@ -371,7 +377,7 @@ geo_regrid.harp_geolist <- function(
     weights <- geo_weights_regrid(dom, new_grid, method, mask, new_mask)
   }
 
-  res <- glapply(x, geo_regrid, weights = weights)
+  res <- glapply(x, geo_regrid, weights = weights, method = method)
   if (keep_weights) {
     attr(res, "weights") <- weights
   }
@@ -382,7 +388,7 @@ geo_regrid.harp_geolist <- function(
 geo_regrid.harp_grid_df <- function(
     x,
     new_grid,
-    method       = c("bilinear", "nearest", "bicubic"),
+    method       = c("bilinear", "nearest", "bicubic", "upscale"),
     mask         = NULL,
     new_mask     = NULL,
     weights      = NULL,
@@ -1035,8 +1041,10 @@ vector_indices <- function(x, i) {
 #'   neighbour, "bilinear", or "bicubic." The default is "bilinear". For
 #'   `geo_upscale`, can be any function that summarises a vector to a
 #'   single value and can found with \code{\link[base]{match.fun}}, the default
-#'   being "mean". A further option is "downsample", dwhich is described in the
-#'   argument for `downsample_location`.
+#'   being "mean". A further option is "downsample", which is described in the
+#'   argument for `downsample_location`. For `geo_regrid`, may also be "upscale"
+#'   for regridding to a coarser grid. This will take the mean of all the
+#'   pixel centroids of `x` that fall within a grid sqaure of the new grid.
 #' @param mask A mask to prevent grid points being used in the interpolation.
 #'   Should be on the same grid as `x` and grid points with values of 0 or FALSE
 #'   will be masked from the interpolation.

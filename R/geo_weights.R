@@ -169,7 +169,7 @@ geo_weights_points.harp_geolist <- function(
 geo_weights_regrid <- function(
   x,
   new_grid,
-  method   = c("bilinear", "nearest", "bicubic"),
+  method   = c("bilinear", "nearest", "bicubic", "upscale"),
   mask     = NULL,
   new_mask = NULL
 ) {
@@ -179,7 +179,7 @@ geo_weights_regrid <- function(
 geo_weights_regrid_geo <- function(
     x,
     new_grid,
-    method   = c("bilinear", "nearest", "bicubic"),
+    method   = c("bilinear", "nearest", "bicubic", "upscale"),
     mask     = NULL,
     new_mask = NULL
 ) {
@@ -191,14 +191,22 @@ geo_weights_regrid_geo <- function(
   dom     <- get_domain(x)
   new_dom <- get_domain(new_grid)
 
-  meteogrid::regrid.init(dom, new_dom, method, mask, new_mask)
+  if (method == "upscale") {
+    res <- meteogrid::upscale_regrid_init(dom, new_dom)
+    attr(res, "newdomain") <- new_dom
+    attr(res, "olddomain") <- dom
+    attr(res, "method")    <- "upscale"
+    return(res)
+  } else {
+    meteogrid::regrid.init(dom, new_dom, method, mask, new_mask)
+  }
 }
 
 #' @export
 geo_weights_regrid.geofield <- function(
     x,
     new_grid,
-    method   = c("bilinear", "nearest", "bicubic"),
+    method   = c("bilinear", "nearest", "bicubic", "upscale"),
     mask     = NULL,
     new_mask = NULL
 ) {
@@ -211,7 +219,7 @@ geo_weights_regrid.geofield <- function(
 geo_weights_regrid.geodomain <- function(
     x,
     new_grid,
-    method   = c("bilinear", "nearest", "bicubic"),
+    method   = c("bilinear", "nearest", "bicubic", "upscale"),
     mask     = NULL,
     new_mask = NULL
 ) {
