@@ -347,7 +347,7 @@ pivot_parameters_wider.harp_df <- function(x, values_from) {
     names_from  = "parameter",
     values_from = {{values_from}}
   )
-  res <- as_harp_df(res)
+  res <- structure(res, class = class(x))
   attr(res, "param_info") <- param_info
   res
 }
@@ -364,7 +364,7 @@ pivot_parameters_longer.harp_df <- function(x, cols, values_to) {
   if (!is.null(param_info) && is.element("parameter", colnames(param_info))) {
     res <- dplyr::inner_join(res, param_info, by = "parameter")
   }
-  as_harp_df(res)
+  structure(res, class = class(x))
 }
 
 
@@ -935,14 +935,16 @@ decum.harp_det_point_df <- function(
   df_name   = NULL,
   ...
 ) {
+  cls <- class(.data)
   .data <- decum_df(
     .data, decum_time, {{cols}}, {{time_col}}, {{group_col}}, df_name
   )
-  as_harp_df(
+  structure(
     dplyr::filter(
       .data,
       dplyr::if_any({{cols}}, ~ !is.na(.x))
-    )
+    ),
+    class = cls
   )
 }
 
@@ -957,14 +959,16 @@ decum.harp_det_grid_df <- function(
   df_name   = NULL,
   ...
 ) {
+  cls <- class(.data)
   .data <- decum_df(
     .data, decum_time, {{cols}}, {{time_col}}, {{group_col}}, df_name
   )
-  as_harp_df(
+  structure(
     dplyr::filter(
       .data,
       dplyr::if_any({{cols}}, ~ !vapply(.x, is.null, TRUE))
-    )
+    ),
+    class = cls
   )
 }
 
@@ -978,14 +982,16 @@ decum.harp_ens_point_df <- function(
   df_name   = NULL,
   ...
 ) {
+  cls <- class(.data)
   .data <- decum_df(
     .data, decum_time, {{cols}}, {{time_col}}, {{group_col}}, df_name
   )
-  as_harp_df(
+  structure(
     dplyr::filter(
       .data,
       dplyr::if_any({{cols}}, ~ !is.na(.x))
-    )
+    ),
+    class = cls
   )
 }
 
@@ -999,14 +1005,16 @@ decum.harp_ens_grid_df <- function(
   df_name   = NULL,
   ...
 ) {
+  cls <- class(.data)
   .data <- decum_df(
     .data, decum_time, {{cols}}, {{time_col}}, {{group_col}}, df_name
   )
-  as_harp_df(
+  structure(
     dplyr::filter(
       .data,
       dplyr::if_any({{cols}}, ~ !vapply(.x, is.null, TRUE))
-    )
+    ),
+    class = cls
   )
 }
 
@@ -1025,6 +1033,7 @@ decum.harp_anl_grid_df <- function(
   # in which case, everything is accumulated first to make it possible to
   # get any decumulation time.
 
+  cls <- class(.data)
   if (accum_first) {
     .data <- dplyr::mutate(
       dplyr::arrange(.data, {{time_col}}),
@@ -1035,11 +1044,12 @@ decum.harp_anl_grid_df <- function(
   .data <- decum_df(
     .data, decum_time, {{cols}}, {{time_col}}, {{group_col}}, df_name
   )
-  as_harp_df(
+  structure(
     dplyr::filter(
       .data,
       dplyr::if_any({{cols}}, ~ !vapply(.x, is.null, TRUE))
-    )
+    ),
+    class = cls
   )
 }
 
