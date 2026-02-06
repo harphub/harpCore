@@ -482,14 +482,18 @@ print.harp_verif <- function(x, n = NULL, ...) {
       x, names(x)
     )
   )
+
   parameter <- paste(Reduce(union, attr(x, "parameter")), collapse = ", ")
+
   dttm <- Reduce(union, attr(x, "dttm"))
   dttm_range <- format(
     harpCore::as_dttm(range(dttm)),
     "%R %Z %d %b %Y"
   )
+
   stations <- Reduce(union, attr(x, "stations"))
   num_stations <- length(stations)
+
   groupings <- attr(x, "group_vars")
   if (!is.list(groupings)) {
     groupings <- list(groupings)
@@ -502,12 +506,27 @@ print.harp_verif <- function(x, n = NULL, ...) {
     function(g) g[vapply(g, nchar, integer(1)) > 0]
   )
   groupings <- groupings[vapply(groupings, length, integer(1)) > 0]
+
+  map_groupings <- attr(x, "map_group_vars")
+  if (!is.list(map_groupings)) {
+    map_groupings <- list(map_groupings)
+  }
+  if (all(vapply(map_groupings, is.list, logical(1)))) {
+    map_groupings <- purrr::flatten(map_groupings)
+  }
+  map_groupings <- lapply(
+    map_groupings,
+    function(g) g[vapply(g, nchar, integer(1)) > 0]
+  )
+  map_groupings <- map_groupings[vapply(map_groupings, length, integer(1)) > 0]
+
   cat(
     cli::col_cyan("--harp verification for "),
     cli::col_magenta(parameter),
     cli::col_cyan("--"),
     sep = ""
   )
+
   cat(
     "\n",
     cli::col_cyan("# for forecasts from"),
@@ -515,6 +534,7 @@ print.harp_verif <- function(x, n = NULL, ...) {
     cli::col_cyan("to"),
     cli::col_magenta(dttm_range[2])
   )
+
   if (num_stations > 0) {
     cat(
       "\n",
@@ -523,8 +543,9 @@ print.harp_verif <- function(x, n = NULL, ...) {
       cli::col_cyan("observation stations")
     )
   }
+
   if (length(groupings) > 0) {
-    cat("\n", cli::col_cyan("# for verification groups: "))
+    cat("\n", cli::col_cyan("# verification groups: "))
     invisible(
       lapply(
         groupings,
@@ -534,11 +555,25 @@ print.harp_verif <- function(x, n = NULL, ...) {
         }
       )
     )
-    cat("\n")
-    cli::cli_inform(c(
-      "i" = cli::col_silver("use `attributes()` to see detailed metadata")
-    ))
   }
+
+  if (length(map_groupings) > 0) {
+    cat("\n", cli::col_cyan("# verification map groups: "))
+    invisible(
+      lapply(
+        map_groupings,
+        function(g) {
+          g <- glue::glue_collapse(g, sep = ", ", last = " & ")
+          cat("\n   ", cli::col_cyan("->"), cli::col_magenta(g))
+        }
+      )
+    )
+  }
+
+  cat("\n")
+  cli::cli_inform(c(
+    "i" = cli::col_silver("use `attributes()` to see detailed metadata")
+  ))
 
 }
 
