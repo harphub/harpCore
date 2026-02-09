@@ -291,7 +291,7 @@ make_verif_groups <- function(time_groups, groups = NULL, all_groups = NULL) {
       "i" = "{.arg time_groups} must be any combination of {poss_tm_grps}"
     ))
   }
-  groups <- unlist(
+  grps <- unlist(
     lapply(
       seq_along(groups),
       function(x) utils::combn(groups, x, simplify = FALSE)
@@ -301,14 +301,27 @@ make_verif_groups <- function(time_groups, groups = NULL, all_groups = NULL) {
   res <- c(
     as.list(time_groups),
     unlist(
-      lapply(time_groups, function(x) lapply(groups, function(y) c(x, y))),
+      lapply(time_groups, function(x) lapply(grps, function(y) c(x, y))),
       recursive = FALSE
     )
   )
   if (is.null(all_groups)) {
-    return(res)
+    return(as_verif_groups(res, time_groups, groups, all_groups))
   }
-  lapply(c(list(NULL), groups, res), function(x) union(x, all_groups))
+  as_verif_groups(
+    lapply(c(list(NULL), grps, res), function(x) union(x, all_groups)),
+    time_groups, groups, all_groups
+  )
+}
+
+as_verif_groups <- function(x, time_groups, groups, all_groups) {
+  structure(
+    x,
+    class = "verif_groups",
+    time_groups = time_groups,
+    groups      = groups,
+    all_groups  = all_groups
+  )
 }
 
 check_col_exists <- function(df, col) {
